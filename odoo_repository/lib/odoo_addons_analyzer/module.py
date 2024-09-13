@@ -46,6 +46,19 @@ class ModuleAnalysis:
                     return manifest
         return {}
 
+    @property
+    def readme(self):
+        for readme_file in ("README.rst", "README.md"):
+            readme_path = pathlib.Path(self.folder_path, readme_file)
+            if readme_path.exists():
+                with open(readme_path) as file_:
+                    try:
+                        readme = file_.read()
+                    except ValueError:
+                        return {}
+                    return readme
+        return {}
+
     def _run(self):
         for file_path in self.file_paths:
             source_analysis = pygount.SourceAnalysis.from_file(
@@ -57,7 +70,7 @@ class ModuleAnalysis:
 
     def to_dict(self):
         summaries = dict.fromkeys(self.languages, 0)
-        data = {"code": summaries, "manifest": self.manifest}
+        data = {"code": summaries, "manifest": self.manifest, "readme": self.readme}
         for summary in self.summary.language_to_language_summary_map.values():
             for language in self.languages:
                 if not summary.language.startswith(language):

@@ -81,6 +81,7 @@ class OdooModuleBranch(models.Model):
         index=True,
     )
     summary = fields.Char(index=True)
+    readme = fields.Html()
     category_id = fields.Many2one(
         comodel_name="odoo.module.category",
         ondelete="restrict",
@@ -316,6 +317,7 @@ class OdooModuleBranch(models.Model):
         module_branch = self._get_module_branch(repo_branch, module)
         # Prepare the 'odoo.module.branch' values
         manifest = data.get("manifest", {})
+        readme = data.get("readme", {})
         values = {
             "repository_branch_id": repo_branch.id,
             "branch_id": repo_branch.branch_id.id,
@@ -328,6 +330,12 @@ class OdooModuleBranch(models.Model):
             # Unset PR URL once the module is available in the repository.
             "pr_url": False,
         }
+        if readme:
+            values.update(
+                {
+                    "readme": readme,
+                }
+            )
         if manifest:
             category_id = self._get_module_category_id(manifest.get("category", ""))
             author_ids = self._get_author_ids(manifest.get("author", ""))

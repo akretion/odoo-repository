@@ -103,6 +103,9 @@
             <page name="python_dependency_ids" string="Python Dependencies">
               <field name="python_dependency_ids" nolabel="1" />
             </page>
+            <page name="readme" string="Readme">
+              <field name="readme" nolabel="1" />
+            </page>
           </notebook>
         </sheet>
       </form>
