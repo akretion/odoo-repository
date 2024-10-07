@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!-- Copyright 2024 Akretion
+     License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl). -->
+<odoo>
+  <record id="odoo_module_branch_view_form" model="ir.ui.view">
+    <field name="name">odoo.module.branch.form.inherit</field>
+    <field name="model">odoo.module.branch</field>
+    <field name="inherit_id" ref="odoo_repository.odoo_module_branch_view_form" />
+    <field name="arch" type="xml">
+      <page name="python_dependency_ids" position="after">
+        <page name="forked_branches" string="PR/Branches">
+          <field name="repository_forked_branch_ids" nolabel="1">
+            <tree>
+                <field name="branch_name" />
+                <field name="pr_name" />
+                <field name="external_id" />
+                <field name="pr_state" />
+
+            </tree>
+          </field>
+        </page>
+      </page>
+    </field>
+  </record>
+</odoo>
