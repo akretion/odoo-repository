@@ -22,17 +22,14 @@ class OdooRepositoryForkedBranch(models.Model):
         string="Repository",
         index=True,
     )
-    source_repository_url = fields.Char(help="git url")
+    source_repository_url = fields.Char(
+        related="source_repository_id.repo_url", help="git url"
+    )
 
     # main odoo branch (v16, v18...)
     branch_id = fields.Many2one(
-        # do we need this ?
         comodel_name="odoo.branch",
-        ondelete="cascade",
-        string="Branch",
-        required=False,
-        index=True,
-        readonly=False,
+        related="target_branch_id.branch_id",
     )
 
     # modules in the branch / pr
@@ -40,13 +37,10 @@ class OdooRepositoryForkedBranch(models.Model):
         comodel_name="odoo.module.branch",
         ondelete="cascade",
     )
-    description = fields.Text(help="Why theses modules are in this branch")
+    description = fields.Text(help="Why these modules are in this branch")
     # todo: mettre ici le change log ~ les commits messages
     # jusqu'a la branche principale ?
     # add pr
-
-    # Github PR related fields
-    pr_name = fields.Char(help="Name on gh")
 
     target_branch_id = fields.Many2one(
         comodel_name="odoo.repository.branch",
@@ -60,6 +54,8 @@ class OdooRepositoryForkedBranch(models.Model):
         string="Target Repository",
     )
 
+    # Github PR related fields
+    pr_name = fields.Char(help="Name on gh")
     pr_url = fields.Char(string="PR URL")
 
     date_open = fields.Datetime(string="Opening Date", readonly=True)
@@ -79,7 +75,7 @@ class OdooRepositoryForkedBranch(models.Model):
     )
     external_id = fields.Char(index=True, string="Github number", readonly=True)
     author = fields.Char(index=True, readonly=True)
-    orga = fields.Char(index=True, readonly=True)
+    org = fields.Char(relate="source_repository_id.org_id", readonly=True)
     # need_review = fields.Boolean(string="Review requested")
     # reviewer_ids_nbr = fields.Integer(
     #    compute="_compute_reviewer_ids_nbr", readonly=True, store=True
@@ -96,7 +92,19 @@ class OdooRepositoryForkedBranch(models.Model):
     #     ),
     # ]
 
-    @api.depends("source_repository_id.display_name", "branch_id.name")
+    @api.depends("source_repository_id.display_name", "branch_name")
     def _compute_name(self):
         for rec in self:
             rec.name = f"{rec.source_repository_id.display_name}#{rec.branch_name}"
+
+    def _get_from_ref(self, repository, ref):
+        domain = [
+            ("source_repository_id", "=", repository.id),
+        ]
+        if ref.startswith("refs/pull/"):
+            ref = ref.split("/")[2]
+            domain.append(("external_id", "=", ref))
+        else:
+            domain.append(("branch_name", "=", ref))
+
+        return self.with_context(active_test=False).search(domain)

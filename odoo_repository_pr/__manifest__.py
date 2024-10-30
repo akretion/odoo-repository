@@ -6,7 +6,7 @@
     "version": "16.0.1.0.0",
     "category": "Tools",
     "author": "Akretion, Odoo Community Association (OCA)",
-    "website": "https://github.com/akretion/odoo-repository",
+    "website": "https://github.com/camptocamp/odoo-repository",
     "installable": True,
     "depends": [
         "odoo_repository",
@@ -16,6 +16,7 @@
     "data": [
         "security/ir.model.access.csv",
         "views/odoo_repository.xml",
+        "views/odoo_repository_branch.xml",
         "views/odoo_module_branch.xml",
     ],
     "license": "AGPL-3",
