@@ -2,3 +2,4 @@
 gitpython
 oca-port
 pygount
+pyyaml>=6.0.2
