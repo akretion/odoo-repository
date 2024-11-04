@@ -122,8 +122,8 @@ class OdooProjectImportModules(models.TransientModel):
             if main_branch:
                 break
 
+        forked_branches = []
         if main_branch:
-            forked_branches = []
             # Remaining refs are forks
             for repo_url, refs in repo_branches.items():
                 repository = self._get_repository(repo_url)
