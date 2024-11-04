@@ -47,10 +47,22 @@ class OdooRepository(models.Model):
         string="Forked branches",
         readonly=True,
     )
+    forked_repository_forked_branch_ids = fields.One2many(
+        comodel_name="odoo.repository.forked.branch",
+        string="Forked Repositories Forked Branches",
+        compute="_compute_forked_repository_forked_branch_ids",
+    )
     last_pr_fetched = fields.Datetime(
         string="Last PR fetched",
         help="Last PRs date fetched from the source repository",
     )
+
+    @api.depends("forked_repository_ids.forked_branch_ids")
+    def _compute_forked_repository_forked_branch_ids(self):
+        for record in self:
+            record.forked_repository_forked_branch_ids = (
+                record.forked_repository_ids.mapped("forked_branch_ids")
+            )
 
     @api.depends("forked_branch_ids.target_repository_id")
     def _compute_source_repository_id(self):

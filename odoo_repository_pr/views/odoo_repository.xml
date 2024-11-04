@@ -26,10 +26,26 @@
       </header>
       <field name="name" position="after">
         <field name="source_repository_id" />
+        <field name="last_pr_fetched" groups="base.group_no_one" />
       </field>
       <group name="branches" position="after">
+        <field name="is_fork" invisible="1" />
         <group name="forks" string="Forks">
           <field name="forked_repository_ids" nolabel="1" colspan="2" />
+        </group>
+        <group
+                    name="forked_repository_forked_branchess"
+                    string="Forked Branches (All)"
+                    attrs="{'invisible': [('is_fork', '=', True)]}"
+                >
+          <field name="forked_repository_forked_branch_ids" nolabel="1" colspan="2" />
+        </group>
+        <group
+                    name="forked_branches"
+                    string="Forked Branches"
+                    attrs="{'invisible': [('is_fork', '=', False)]}"
+                >
+          <field name="forked_branch_ids" nolabel="1" colspan="2" />
         </group>
       </group>
     </field>
