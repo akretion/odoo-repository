@@ -3,7 +3,6 @@
 # License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl).
 
 from collections import defaultdict
-from urllib.parse import urlparse
 
 from odoo import _, models
 from odoo.exceptions import UserError
@@ -13,32 +12,7 @@ class OdooProjectImportModules(models.TransientModel):
     _inherit = "odoo.project.import.modules"
 
     def _get_repository(self, repo_url):
-        repo_url = repo_url.replace(".git", "").strip()
-
-        repository = (
-            self.env["odoo.repository"]
-            .with_context(active_test=False)
-            .search([("repo_url", "=", repo_url)])
-        )
-
-        if not repository:
-            path_parts = list(filter(None, urlparse(repo_url).path.split("/")))
-            org_name, name = path_parts[:2]
-            org = (
-                self.env["odoo.repository.org"]
-                .with_context(active_test=False)
-                .search([("name", "ilike", org_name)])
-            )
-            if not org:
-                org = self.env["odoo.repository.org"].sudo().create({"name": org_name})
-
-            repository = (
-                self.env["odoo.repository"]
-                .sudo()
-                .create({"name": name, "repo_url": repo_url, "org_id": org.id})
-            )
-
-        return repository
+        return self.env["odoo.repository"]._get_or_create_from_url(repo_url)
 
     def _get_repo_branches(self, repo):
         repo_branches = defaultdict(list)

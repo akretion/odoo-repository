@@ -69,6 +69,34 @@ class OdooRepository(models.Model):
                     record.repo_type = "github"
                 record.with_delay()._action_fetch_prs()
 
+    def _get_or_create_from_url(self, url):
+        url = url.replace(".git", "").strip()
+        repository = (
+            self.env["odoo.repository"]
+            .with_context(active_test=False)
+            .search([("repo_url", "=", url)])
+        )
+        if repository:
+            return repository
+
+        path_parts = list(filter(None, urlparse(url).path.split("/")))
+        org_name, name = path_parts[:2]
+        orgs = {
+            org.name.lower(): org
+            for org in self.env["odoo.repository.org"]
+            .with_context(active_test=False)
+            .search([])
+        }
+        org = orgs.get(org_name.lower())
+        if not org:
+            org = self.env["odoo.repository.org"].sudo().create({"name": org_name})
+
+        return (
+            self.env["odoo.repository"]
+            .sudo()
+            .create({"name": name, "repo_url": url, "org_id": org.id})
+        )
+
     def _action_fetch_prs(self):
         """Fetch PRs from the source repository."""
         self.ensure_one()
@@ -115,23 +143,7 @@ class OdooRepository(models.Model):
         repo_url = (pr["head"]["repo"] or {}).get("html_url")
         if not repo_url:
             return
-        repo = self.env["odoo.repository"].search([("repo_url", "=", repo_url)])
-        if not repo:
-            path_parts = list(filter(None, urlparse(repo_url).path.split("/")))
-            org_name, name = path_parts[:2]
-            org = (
-                self.env["odoo.repository.org"]
-                .with_context(active_test=False)
-                .search([("name", "ilike", org_name)])
-            )
-            if not org:
-                org = self.env["odoo.repository.org"].sudo().create({"name": org_name})
-
-            repo = (
-                self.env["odoo.repository"]
-                .sudo()
-                .create({"name": name, "repo_url": repo_url, "org_id": org.id})
-            )
+        repo = self._get_or_create_from_url(repo_url)
         if repo_branch.branch_id.name not in repo.branch_ids.mapped("branch_id.name"):
             self.env["odoo.repository.branch"].create(
                 {"branch_id": repo_branch.branch_id.id, "repository_id": repo.id}
