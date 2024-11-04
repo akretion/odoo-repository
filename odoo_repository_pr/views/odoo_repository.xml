@@ -16,6 +16,13 @@
                     class="btn-secondary"
                     groups="base.group_system"
                 />
+          <button
+                    name="action_fetch_prs_full"
+                    type="object"
+                    string="Fetch PRs (full)"
+                    class="btn-secondary"
+                    groups="base.group_no_one"
+                />
       </header>
       <field name="name" position="after">
         <field name="source_repository_id" />

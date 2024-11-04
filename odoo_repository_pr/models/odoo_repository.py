@@ -69,6 +69,10 @@ class OdooRepository(models.Model):
                     record.repo_type = "github"
                 record.with_delay()._action_fetch_prs()
 
+    def action_fetch_prs_full(self):
+        """Fetch all PRs from the source repository."""
+        self.with_context(load_all_prs=True).action_fetch_prs()
+
     def _get_or_create_from_url(self, url):
         url = url.replace(".git", "").strip()
         repository = (
@@ -112,19 +116,21 @@ class OdooRepository(models.Model):
                 )
             except RuntimeError as exc:
                 raise RetryableJobError("Error while looking for PR URL") from exc
-            except Exception:
-                break
 
             if not response:
                 break
 
             prs.extend(response)
-            if (
-                self.last_pr_fetched
-                and datetime.strptime(response[-1]["updated_at"], "%Y-%m-%dT%H:%M:%SZ")
-                < self.last_pr_fetched
-            ):
-                break
+            if not self.env.context.get("load_all_prs"):
+                if (
+                    self.last_pr_fetched
+                    and datetime.strptime(
+                        response[-1]["updated_at"], "%Y-%m-%dT%H:%M:%SZ"
+                    )
+                    < self.last_pr_fetched
+                ) or page > 4:
+                    # Limit the number of PRs fetched to 500
+                    break
 
             page += 1
 
