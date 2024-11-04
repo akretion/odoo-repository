@@ -49,7 +49,11 @@ class OdooProjectImportModules(models.TransientModel):
                 src_branch_commit.append(False)
             if len(src_branch_commit) != 3:
                 raise UserError(
-                    _("src should be a string with 2 or 3 parts: repo branch commit")
+                    _(
+                        "%(src)s: src should be a string with 2 or 3 parts: "
+                        "repo branch commit.\n%(repo)r"
+                    )
+                    % {"src": repo["src"], "repo": repo}
                 )
             # Ignoring commit for now
             repo_branches[src_branch_commit[0]].append(src_branch_commit[1])
