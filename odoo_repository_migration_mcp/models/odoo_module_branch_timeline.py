@@ -4,174 +4,119 @@
 
 from typing import Literal
 
-from pydantic import BaseModel, Field
+import pydantic
 
 from odoo import models
 
 from odoo.addons.odoo_repository_mcp.utils import (
+    REPOSITORY_DESCRIPTION,
     NullableStr,
-    check_source_of_truth,
     mcp_tool,
 )
 
+from ..utils import (
+    TimelineCreateFields,
+    TimelineUpdateFields,
+    check_confirmed_timeline_update,
+    check_source_of_truth,
+)
 
-class Timeline(BaseModel):
+
+class Timeline(pydantic.BaseModel):
     """Timeline (rename/replacement proposal) of a module."""
 
     id: int
-    module: str = Field(description="Module technical name.")
-    version: str = Field(description="Odoo version of the source module branch.")
-    timeline_type: str = Field(description="'renamed' or 'replaced'.")
-    state: str = Field(description="Review state: 'draft' or 'confirmed'.")
-    new_module: str = Field(description="New module technical name.")
+    module: str = pydantic.Field(description="Module technical name.")
+    version: str = pydantic.Field(
+        description="Odoo version of the source module branch."
+    )
+    timeline_type: Literal["renamed", "replaced"] = pydantic.Field(
+        description="'renamed' or 'replaced'."
+    )
+    state: Literal["draft", "confirmed"] = pydantic.Field(
+        description="Review state: 'draft' or 'confirmed'."
+    )
+    new_module: str = pydantic.Field(description="New module technical name.")
     starting_version: NullableStr = None
-    note: NullableStr = Field(
+    note: NullableStr = pydantic.Field(
         default=None,
         description="HTML note explaining the module move/replacement.",
     )
 
 
-class TimelineListInput(BaseModel):
-    """Inputs of the `migration_list_timelines` tool."""
+class ModuleTimelineInput(pydantic.BaseModel):
+    """Module, version and repository identifying a module timeline."""
 
-    module: str | None = Field(default=None, description="Module technical name.")
-    version: str | None = Field(
+    module: str = pydantic.Field(description="Module technical name.")
+    version: str = pydantic.Field(
+        description="Odoo version of the source module branch."
+    )
+    repository: str | None = pydantic.Field(
+        default=None, description=REPOSITORY_DESCRIPTION
+    )
+
+
+class ModuleTimelineFilter(pydantic.BaseModel):
+    """Optional filters on module timelines."""
+
+    module: str | None = pydantic.Field(
+        default=None, description="Module technical name."
+    )
+    version: str | None = pydantic.Field(
         default=None, description="Filter by the source module Odoo version."
     )
-    state: Literal["draft", "confirmed"] | None = Field(
-        default=None, description="Filter by review state."
-    )
-    repository: str | None = Field(
+    repository: str | None = pydantic.Field(
         default=None, description="Filter by repository ('name' or 'org/name')."
     )
 
 
-class TimelineListOutput(BaseModel):
+class TimelineListInput(ModuleTimelineFilter):
+    """Inputs of the `migration_list_timelines` tool."""
+
+    state: Literal["draft", "confirmed"] | None = pydantic.Field(
+        default=None, description="Filter by review state."
+    )
+
+
+class TimelineListOutput(pydantic.BaseModel):
     """Output of the `migration_list_timelines` tool."""
 
     error: str | None = None
     timelines: list[Timeline]
 
 
-class TimelineCreateInput(BaseModel):
+class TimelineCreateInput(ModuleTimelineInput, TimelineCreateFields):
     """Inputs of the `migration_create_timeline` tool."""
 
-    module: str = Field(description="Module technical name.")
-    version: str = Field(description="Odoo version of the source module branch.")
-    new_module: str = Field(description="Technical name of the new module.")
-    timeline_type: Literal["renamed", "replaced"] | None = Field(
+    new_module: str = pydantic.Field(description="Technical name of the new module.")
+    timeline_type: Literal["renamed", "replaced"] | None = pydantic.Field(
         default=None, description="'renamed' (default) or 'replaced'."
     )
-    note: str | None = Field(
-        default=None,
-        description=(
-            "HTML note. Start the visible text with '[HIGHLY-CONFIDENT]' "
-            "or '[LESS-CONFIDENT]', explain the change, then end with a "
-            "bulleted Source section: "
-            "'<br/>Source:<br/>- <a href=\"URL\">URL</a>' for each link. "
-            "Put the full URL as link text, commit first; do not use "
-            "Markdown."
-        ),
-        examples=[
-            (
-                "<p>[HIGHLY-CONFIDENT] Module renamed.<br/>Source:"
-                '<br/>- <a href="https://github.com/odoo/odoo/commit/abc123">'
-                "https://github.com/odoo/odoo/commit/abc123</a>"
-                '<br/>- <a href="https://github.com/OCA/OpenUpgrade">'
-                "https://github.com/OCA/OpenUpgrade</a></p>"
-            )
-        ],
-    )
-    confirm: bool = Field(
-        default=False,
-        description=(
-            "Create the timeline as confirmed instead of draft. Only for "
-            "high-confidence proposals: a confirmed timeline immediately "
-            "impacts the migration analysis, and a source of truth URL is "
-            "required in 'note'."
-        ),
-    )
-    repository: str | None = Field(
-        default=None,
-        description=(
-            "Restrict to one repository ('name' or 'org/name'). "
-            "Required when several repositories host the module."
-        ),
-    )
 
 
-class TimelineOutput(BaseModel):
+class TimelineOutput(pydantic.BaseModel):
     """Output of the timeline write tools."""
 
     error: str | None = None
     timeline: Timeline
 
 
-class TimelineUpdateInput(BaseModel):
+class TimelineUpdateInput(ModuleTimelineInput, TimelineUpdateFields):
     """Inputs of the `migration_update_timeline` tool."""
 
-    module: str = Field(description="Module technical name.")
-    version: str = Field(description="Odoo version of the source module branch.")
-    new_module: str | None = Field(
+    new_module: str | None = pydantic.Field(
         default=None, description="New technical name of the module."
     )
-    timeline_type: Literal["renamed", "replaced"] | None = Field(
+    timeline_type: Literal["renamed", "replaced"] | None = pydantic.Field(
         default=None, description="New type of the timeline."
     )
-    note: str | None = Field(
-        default=None,
-        description=(
-            "HTML note. Start the visible text with '[HIGHLY-CONFIDENT]' "
-            "or '[LESS-CONFIDENT]', explain the change, then end with a "
-            "bulleted Source section: "
-            "'<br/>Source:<br/>- <a href=\"URL\">URL</a>' for each link. "
-            "Put the full URL as link text, commit first; do not use "
-            "Markdown. On a confirmed timeline, only the note can be "
-            "updated."
-        ),
-        examples=[
-            (
-                "<p>[HIGHLY-CONFIDENT] Module renamed.<br/>Source:"
-                '<br/>- <a href="https://github.com/odoo/odoo/commit/abc123">'
-                "https://github.com/odoo/odoo/commit/abc123</a>"
-                '<br/>- <a href="https://github.com/OCA/OpenUpgrade">'
-                "https://github.com/OCA/OpenUpgrade</a></p>"
-            )
-        ],
-    )
-    confirm: bool = Field(
-        default=False,
-        description=(
-            "Confirm the timeline instead of keeping it as a draft. Only "
-            "for high-confidence proposals: a confirmed timeline "
-            "immediately impacts the migration analysis, and a source of "
-            "truth URL is required in 'note'."
-        ),
-    )
-    repository: str | None = Field(
-        default=None,
-        description=(
-            "Restrict to one repository ('name' or 'org/name'). "
-            "Required when several repositories host the module."
-        ),
-    )
 
 
-class TimelineDeleteInput(BaseModel):
+class TimelineDeleteInput(ModuleTimelineInput):
     """Inputs of the `migration_delete_timeline` tool."""
 
-    module: str = Field(description="Module technical name.")
-    version: str = Field(description="Odoo version of the source module branch.")
-    repository: str | None = Field(
-        default=None,
-        description=(
-            "Restrict to one repository ('name' or 'org/name'). "
-            "Required when several repositories host the module."
-        ),
-    )
 
-
-class TimelineDeletedOutput(BaseModel):
+class TimelineDeletedOutput(pydantic.BaseModel):
     """Output of the `migration_delete_timeline` tool."""
 
     error: str | None = None
@@ -327,21 +272,7 @@ class OdooModuleBranchTimeline(models.Model):
         self, timeline, new_module, timeline_type, note, confirm
     ):
         """Annotate a confirmed module timeline (note only)."""
-        if confirm:
-            raise ValueError(
-                "The timeline is already confirmed: 'confirm' is not expected."
-            )
-        if new_module is not None or timeline_type is not None:
-            raise ValueError(
-                "The timeline is confirmed: only its note can be updated "
-                "(semantic fields are managed by humans in the UI)."
-            )
-        if note is None:
-            raise ValueError(
-                "The timeline is confirmed: provide 'note' to annotate it; "
-                "semantic fields cannot be updated."
-            )
-        check_source_of_truth(note)
+        check_confirmed_timeline_update(confirm, (new_module, timeline_type), note)
         timeline.write({"note": note})
         return {"timeline": timeline._mcp_to_dict()}
 

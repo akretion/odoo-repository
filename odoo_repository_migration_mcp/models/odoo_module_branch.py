@@ -2,19 +2,32 @@
 # @author Sébastien Alix <sebastien.alix@akretion.com>
 # License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl)
 
-from pydantic import BaseModel, Field
+from typing import Literal
+
+import pydantic
 
 from odoo import models
 
 from odoo.addons.odoo_repository_mcp.utils import NullableStr, mcp_tool
 
+MigrationState = Literal[
+    "fully_ported",
+    "migrate",
+    "port_commits",
+    "review_migration",
+    "replaced",
+    "moved_to_standard",
+    "moved_to_oca",
+    "moved_to_generic",
+]
 
-class MigrationStatus(BaseModel):
+
+class MigrationStatus(pydantic.BaseModel):
     """Migration status of a module for a migration path."""
 
-    source: str = Field(description="Source Odoo version.")
-    target: str = Field(description="Target Odoo version.")
-    status: str = Field(
+    source: str = pydantic.Field(description="Source Odoo version.")
+    target: str = pydantic.Field(description="Target Odoo version.")
+    status: MigrationState = pydantic.Field(
         description=(
             "Migration status: fully_ported, migrate, port_commits, "
             "review_migration, replaced, moved_to_standard, moved_to_oca "
@@ -28,33 +41,33 @@ class MigrationStatus(BaseModel):
     pr_url: NullableStr = None
 
 
-class MigrationStatusInput(BaseModel):
+class MigrationStatusInput(pydantic.BaseModel):
     """Inputs of the `migration_get_module_status` tool."""
 
-    module: str = Field(description="Module technical name.")
-    source_version: str | None = Field(
+    module: str = pydantic.Field(description="Module technical name.")
+    source_version: str | None = pydantic.Field(
         default=None,
         description=(
             "Filter by source Odoo version (e.g. '17.0'). "
             "All the known migration paths otherwise."
         ),
     )
-    target_version: str | None = Field(
+    target_version: str | None = pydantic.Field(
         default=None, description="Filter by target Odoo version (e.g. '18.0')."
     )
-    repository: str | None = Field(
+    repository: str | None = pydantic.Field(
         default=None, description="Filter by repository ('name' or 'org/name')."
     )
 
 
-class MigrationStatusOutput(BaseModel):
+class MigrationStatusOutput(pydantic.BaseModel):
     """Output of the `migration_get_module_status` tool."""
 
     error: str | None = None
     migrations: list[MigrationStatus]
 
 
-class MigrationData(BaseModel):
+class MigrationData(pydantic.BaseModel):
     """Migration scan data of a module for a migration path."""
 
     source_branch: str
@@ -63,17 +76,21 @@ class MigrationData(BaseModel):
     results: dict | None = None
     last_source_scanned_commit: NullableStr = None
     last_target_scanned_commit: NullableStr = None
-    state: str
+    state: MigrationState
     pr_url: NullableStr = None
 
 
-class MigrationDataInput(BaseModel):
+class MigrationDataInput(pydantic.BaseModel):
     """Inputs of the `migration_get_data` tool."""
 
-    module: str = Field(description="Module technical name.")
-    source_version: str = Field(description="Source Odoo version (e.g. '17.0').")
-    target_version: str = Field(description="Target Odoo version (e.g. '18.0').")
-    repository: str | None = Field(
+    module: str = pydantic.Field(description="Module technical name.")
+    source_version: str = pydantic.Field(
+        description="Source Odoo version (e.g. '17.0')."
+    )
+    target_version: str = pydantic.Field(
+        description="Target Odoo version (e.g. '18.0')."
+    )
+    repository: str | None = pydantic.Field(
         default=None,
         description=(
             "Restrict to one repository ('name' or 'org/name'). "
@@ -82,7 +99,7 @@ class MigrationDataInput(BaseModel):
     )
 
 
-class MigrationDataOutput(BaseModel):
+class MigrationDataOutput(pydantic.BaseModel):
     """Output of the `migration_get_data` tool."""
 
     error: str | None = None

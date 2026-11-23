@@ -10,7 +10,7 @@ SOURCE_URL = (
 )
 HTML_NOTE = (
     "<p>[HIGHLY-CONFIDENT] Renamed.</p>"
-    f'<p>Source: <a href="{SOURCE_URL}">commit</a></p>'
+    f'<p>Source:</p><ul><li><a href="{SOURCE_URL}">commit</a></li></ul>'
 )
 
 
@@ -61,7 +61,9 @@ class TestTimelineWriteTools(McpMigrationCommon):
             note_schema = schema["properties"]["note"]
             self.assertIn("examples", note_schema)
             example = note_schema["examples"][0]
-            self.assertIn("<br/>Source:", example)
+            self.assertIn("<p>Source:</p>", example)
+            self.assertIn("<ul>", example)
+            self.assertIn("<li>", example)
             self.assertIn("<a href=", example)
             self.assertIn('">https://', example)
 
