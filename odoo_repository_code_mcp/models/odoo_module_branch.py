@@ -144,7 +144,7 @@ class ElementSearchInput(pydantic.BaseModel):
         default=None, description="Filter by repository ('name' or 'org/name')."
     )
     limit: int = pydantic.Field(
-        default=20, ge=1, description="Number of elements to return."
+        default=20, ge=1, le=500, description="Number of elements to return."
     )
     offset: int = pydantic.Field(
         default=0, ge=0, description="Index of the first element to return."
