@@ -25,8 +25,8 @@ MigrationState = Literal[
 class MigrationStatus(pydantic.BaseModel):
     """Migration status of a module for a migration path."""
 
-    source: str = pydantic.Field(description="Source Odoo version.")
-    target: str = pydantic.Field(description="Target Odoo version.")
+    source_version: str = pydantic.Field(description="Source Odoo version.")
+    target_version: str = pydantic.Field(description="Target Odoo version.")
     status: MigrationState = pydantic.Field(
         description=(
             "Migration status: fully_ported, migrate, port_commits, "
@@ -70,8 +70,8 @@ class MigrationStatusOutput(pydantic.BaseModel):
 class MigrationData(pydantic.BaseModel):
     """Migration scan data of a module for a migration path."""
 
-    source_branch: str
-    target_branch: str
+    source_version: str
+    target_version: str
     process: NullableStr = None
     results: dict | None = None
     last_source_scanned_commit: NullableStr = None
@@ -133,8 +133,8 @@ class OdooModuleBranch(models.Model):
         return {
             "migrations": [
                 {
-                    "source": migration.source_branch_id.name,
-                    "target": migration.target_branch_id.name,
+                    "source_version": migration.source_branch_id.name,
+                    "target_version": migration.target_branch_id.name,
                     "status": migration.state,
                     "renamed_to": migration.renamed_to_module_id.name,
                     "replaced_by": migration.replaced_by_module_id.name,
@@ -180,6 +180,8 @@ class OdooModuleBranch(models.Model):
             )
         migration = migrations
         data = migration._to_dict()
+        data["source_version"] = data.pop("source_branch")
+        data["target_version"] = data.pop("target_branch")
         data["state"] = migration.state
         data["pr_url"] = migration.pr_url
         return {"migration": data}

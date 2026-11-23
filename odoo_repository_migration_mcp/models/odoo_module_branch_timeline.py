@@ -76,12 +76,24 @@ class TimelineListInput(ModuleTimelineFilter):
     state: Literal["draft", "confirmed"] | None = pydantic.Field(
         default=None, description="Filter by review state."
     )
+    limit: int | None = pydantic.Field(
+        default=None,
+        ge=1,
+        le=500,
+        description=(
+            "Number of timelines to return. All matching timelines when omitted."
+        ),
+    )
+    offset: int = pydantic.Field(
+        default=0, ge=0, description="Index of the first timeline to return."
+    )
 
 
 class TimelineListOutput(pydantic.BaseModel):
     """Output of the `migration_list_timelines` tool."""
 
     error: str | None = None
+    total: int
     timelines: list[Timeline]
 
 
@@ -189,7 +201,13 @@ class OdooModuleBranchTimeline(models.Model):
 
     @mcp_tool(TimelineListInput, TimelineListOutput)
     def _ai_migration_list_timelines(
-        self, module=None, version=None, state=None, repository=None
+        self,
+        module=None,
+        version=None,
+        state=None,
+        repository=None,
+        limit=None,
+        offset=None,
     ):
         """List the module renames/replacements declared in the database."""
         module_branch_model = self.env["odoo.module.branch"]
@@ -220,8 +238,12 @@ class OdooModuleBranchTimeline(models.Model):
                     module_branch_model._mcp_get_repository(repository).id,
                 )
             )
-        timelines = self.search(domain)
-        return {"timelines": [timeline._mcp_to_dict() for timeline in timelines]}
+        total = self.search_count(domain)
+        timelines = self.search(domain, limit=limit, offset=offset)
+        return {
+            "total": total,
+            "timelines": [timeline._mcp_to_dict() for timeline in timelines],
+        }
 
     @mcp_tool(TimelineCreateInput, TimelineOutput)
     def _ai_migration_create_timeline(

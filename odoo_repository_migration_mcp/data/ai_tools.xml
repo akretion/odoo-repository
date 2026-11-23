@@ -17,7 +17,7 @@
         <field name="name">migration_list_timelines</field>
         <field
             name="description"
-        >List the module renames/replacements declared in the database, with their review state: draft timelines are proposals pending review, not applied to the migration analysis yet.</field>
+        >List the module renames/replacements declared in the database, with their review state: draft timelines are proposals pending review, not applied to the migration analysis yet. Results can be filtered and paginated; all matching timelines are returned when no limit is set.</field>
         <field
             name="model_id"
             ref="odoo_repository_migration.model_odoo_module_branch_timeline"

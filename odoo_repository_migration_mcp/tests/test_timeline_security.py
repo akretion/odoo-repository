@@ -25,3 +25,15 @@ class TestTimelineSecurity(McpMigrationCommon):
             dict(values, state="draft")
         )
         self.assertTrue(record.exists())
+
+    def test_write_tool_returns_structured_error(self):
+        timeline_model = self.env["odoo.module.branch.timeline"]
+        result = timeline_model.with_user(
+            self.reader_user
+        )._ai_migration_create_timeline(
+            module="test_module_b",
+            version="17.0",
+            new_module="test_module_c",
+        )
+        self.assertIsNotNone(result["error"])
+        self.assertNotIn("timeline", result)

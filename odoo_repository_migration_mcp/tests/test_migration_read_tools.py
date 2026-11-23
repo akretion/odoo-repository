@@ -15,8 +15,8 @@ class TestMigrationReadTools(McpMigrationCommon):
         statuses = {m["status"]: m for m in result["migrations"]}
         self.assertEqual(set(statuses), {"migrate", "moved_to_generic"})
         migrate = statuses["migrate"]
-        self.assertEqual(migrate["source"], "17.0")
-        self.assertEqual(migrate["target"], "18.0")
+        self.assertEqual(migrate["source_version"], "17.0")
+        self.assertEqual(migrate["target_version"], "18.0")
         self.assertIsNone(migrate["pr_url"])
         self.assertEqual(migrate["last_source_scanned_commit"], "s1" * 10)
         self.assertFalse(migrate["renamed_to"])
@@ -72,8 +72,8 @@ class TestMigrationReadTools(McpMigrationCommon):
         )
         self.assertIsNone(result["error"])
         migration = result["migration"]
-        self.assertEqual(migration["source_branch"], "17.0")
-        self.assertEqual(migration["target_branch"], "18.0")
+        self.assertEqual(migration["source_version"], "17.0")
+        self.assertEqual(migration["target_version"], "18.0")
         self.assertEqual(migration["process"], "migrate")
         self.assertEqual(migration["state"], "migrate")
         self.assertEqual(migration["results"], {})
@@ -123,6 +123,7 @@ class TestMigrationReadTools(McpMigrationCommon):
     def test_migration_list_timelines(self):
         result = self.env["odoo.module.branch.timeline"]._ai_migration_list_timelines()
         self.assertIsNone(result["error"])
+        self.assertEqual(result["total"], 2)
         self.assertEqual(len(result["timelines"]), 2)
         timelines = {t["module"]: t for t in result["timelines"]}
         draft = timelines["test_module_a"]
@@ -154,6 +155,23 @@ class TestMigrationReadTools(McpMigrationCommon):
             repository="TestProject/project-repo"
         )
         self.assertEqual(result["timelines"], [])
+
+    def test_migration_list_timelines__pagination(self):
+        model = self.env["odoo.module.branch.timeline"]
+        result = model._ai_migration_list_timelines(limit=1)
+        self.assertIsNone(result["error"])
+        self.assertEqual(result["total"], 2)
+        self.assertEqual(len(result["timelines"]), 1)
+        first_id = result["timelines"][0]["id"]
+        result = model._ai_migration_list_timelines(limit=1, offset=1)
+        self.assertIsNone(result["error"])
+        self.assertEqual(result["total"], 2)
+        self.assertEqual(len(result["timelines"]), 1)
+        self.assertNotEqual(result["timelines"][0]["id"], first_id)
+        result = model._ai_migration_list_timelines(limit=0)
+        self.assertIsNotNone(result["error"])
+        result = model._ai_migration_list_timelines(limit=501)
+        self.assertIsNotNone(result["error"])
 
     def test_migration_list_timelines__invalid_params(self):
         model = self.env["odoo.module.branch.timeline"]
