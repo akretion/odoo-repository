@@ -47,7 +47,7 @@
         <field name="name">repo_list_versions</field>
         <field
             name="description"
-        >List the Odoo versions known to the database. These are the valid 'version' inputs of the other tools.</field>
+        >List the active Odoo versions known to the database. These are the valid 'version' inputs of the other tools.</field>
         <field name="model_id" ref="odoo_repository.model_odoo_branch" />
         <field name="function_name">_ai_repo_list_versions</field>
         <field name="kind">generic</field>
@@ -63,8 +63,10 @@
         <field name="kind">generic</field>
     </record>
 
-    <!-- Attach the tools to the MCP server declared by this module -->
+    <!-- Attach the tools to the MCP server -->
     <record id="mcp_server" model="mcp.server">
+        <field name="name">Odoo MCA MCP</field>
+        <field name="description">MCP server exposing the Odoo MCA data.</field>
         <field
             name="tool_ids"
             eval="[

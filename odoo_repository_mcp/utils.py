@@ -7,6 +7,8 @@ from typing import Annotated
 
 import pydantic
 
+from odoo.exceptions import UserError
+
 from odoo.addons.ai_tool.tools import aitool
 
 
@@ -76,8 +78,9 @@ def mcp_tool(input_model, output_model):
     - The tool output is validated against `output_model` and serialized:
       the unset values become null, and the output is guaranteed to match
       the schema exposed to the clients.
-    - Any `ValueError` (including the Pydantic validation ones) follows
-      the `{"error": ...}` output convention.
+    - Any `ValueError` (including the Pydantic validation ones) and any
+      Odoo `UserError` (including access and validation errors) follow the
+      `{"error": ...}` output convention.
     """
 
     def decorator(func):
@@ -87,7 +90,7 @@ def mcp_tool(input_model, output_model):
                 inputs = input_model(**kwargs)
                 result = func(self, **inputs.model_dump())
                 return output_model(**result).model_dump(mode="json")
-            except ValueError as error:
+            except (ValueError, UserError) as error:
                 return {"error": str(error)}
 
         return aitool(

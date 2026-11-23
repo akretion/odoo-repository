@@ -10,7 +10,6 @@
     "author": "Akretion, Odoo Community Association (OCA)",
     "website": "https://github.com/OCA/module-composition-analysis",
     "data": [
-        "data/mcp_server.xml",
         "data/ai_tools.xml",
     ],
     "installable": True,

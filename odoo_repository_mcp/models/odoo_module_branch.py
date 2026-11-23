@@ -88,7 +88,7 @@ class ModuleSearchInput(pydantic.BaseModel):
     )
     author: str | None = pydantic.Field(default=None, description="Module author name.")
     limit: int = pydantic.Field(
-        default=20, ge=1, description="Number of modules to return."
+        default=20, ge=1, le=500, description="Number of modules to return."
     )
     offset: int = pydantic.Field(
         default=0, ge=0, description="Index of the first module to return."
@@ -120,10 +120,10 @@ class RepositoryInfo(pydantic.BaseModel):
 
 
 class ModuleVersionInfo(pydantic.BaseModel):
-    """Version (manifest value) of a module, with its commit."""
+    """Manifest version of a module, with its commit."""
 
     name: str
-    manifest_value: str
+    manifest_version: str
     commit: NullableStr = None
     has_migration_script: bool
     sequence: int
@@ -243,7 +243,7 @@ class ModuleDependenciesInput(pydantic.BaseModel):
         description="Filter the modules by organization (e.g. 'OCA').",
     )
     limit: int = pydantic.Field(
-        default=20, ge=1, description="Number of modules to return."
+        default=20, ge=1, le=500, description="Number of modules to return."
     )
     offset: int = pydantic.Field(
         default=0, ge=0, description="Index of the first module to return."
@@ -505,6 +505,12 @@ class OdooModuleBranch(models.Model):
             manifest_version = data.pop("version")
             data["version"] = data.pop("branch")
             data["manifest_version"] = manifest_version
+            versions = []
+            for version_data in data["versions"]:
+                version_data = dict(version_data)
+                version_data["manifest_version"] = version_data.pop("manifest_value")
+                versions.append(version_data)
+            data["versions"] = versions
             data.update(
                 {
                     "repository": repository,

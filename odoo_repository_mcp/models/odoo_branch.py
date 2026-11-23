@@ -29,7 +29,7 @@ class OdooBranch(models.Model):
 
     @mcp_tool(NoInputs, RepoVersionsOutput)
     def _ai_repo_list_versions(self):
-        """List the Odoo versions known to the database."""
+        """List the active Odoo versions known to the database."""
         return {
             "versions": [
                 {
