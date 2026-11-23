@@ -4,11 +4,15 @@
 
 from typing import Literal
 
-from pydantic import BaseModel, Field
+import pydantic
 
 from odoo import models
 
-from odoo.addons.odoo_repository_mcp.utils import NullableStr, mcp_tool
+from odoo.addons.odoo_repository_mcp.utils import (
+    REPOSITORY_DESCRIPTION,
+    NullableStr,
+    mcp_tool,
+)
 
 ELEMENT_MODELS = {
     "model": "odoo.module.branch.model",
@@ -23,87 +27,131 @@ ELEMENT_MODELS = {
 # ---------------------------------------------------------------------------
 
 
-class ModelFieldSummary(BaseModel):
+class ElementRef(pydantic.BaseModel):
+    """Reference to a code element."""
+
+    element_type: Literal["model", "field", "method", "data"] = pydantic.Field(
+        description="'model', 'field', 'method' or 'data'."
+    )
+    module: str = pydantic.Field(description="Technical module name.")
+    version: str = pydantic.Field(description="Odoo version.")
+    model: NullableStr = pydantic.Field(
+        default=None,
+        description="Model the element belongs to (None for model elements).",
+    )
+    name: str = pydantic.Field(
+        description="Element name (the full XML ID for data elements)."
+    )
+
+
+class ElementInput(pydantic.BaseModel):
+    """Inputs identifying a code element."""
+
+    element_type: Literal["model", "field", "method", "data"] = pydantic.Field(
+        description="Type of the element."
+    )
+    version: str = pydantic.Field(
+        description="Odoo version of the element (e.g. '17.0')."
+    )
+    module: str = pydantic.Field(description="Technical module name.")
+    model: str | None = pydantic.Field(
+        default=None,
+        description=(
+            "Model name the element belongs to (required for fields and methods)."
+        ),
+    )
+    name: str = pydantic.Field(
+        description=(
+            "Element name (the external ID for data elements, local or fully "
+            "qualified)."
+        )
+    )
+    repository: str | None = pydantic.Field(
+        default=None, description=REPOSITORY_DESCRIPTION
+    )
+
+
+class ModelFieldSummary(pydantic.BaseModel):
     """Field of a model (summary)."""
 
     name: str
     field_type: str
 
 
-class ModelMethodSummary(BaseModel):
+class ModelMethodSummary(pydantic.BaseModel):
     """Method of a model (summary)."""
 
     name: str
     signature: NullableStr = None
 
 
-class ElementSummary(BaseModel):
+class ElementSummary(ElementRef):
     """Summary of a code element."""
 
-    element_type: str = Field(description="'model', 'field', 'method' or 'data'.")
-    name: str = Field(description="Element name.")
-    module: str = Field(description="Technical module name.")
-    version: str = Field(description="Odoo version.")
-    model: NullableStr = Field(
-        default=None,
-        description="Model the element belongs to (None for model elements).",
-    )
-    org: NullableStr = Field(
+    org: NullableStr = pydantic.Field(
         default=None, description="Organization owning the repository."
     )
-    repository: NullableStr = Field(default=None, description="Repository name.")
+    repository: NullableStr = pydantic.Field(
+        default=None, description="Repository name."
+    )
     # Type-specific summary
-    model_type: NullableStr = Field(
+    model_type: NullableStr = pydantic.Field(
         default=None, description="Model type (for model elements)."
     )
-    field_type: NullableStr = Field(
+    field_type: NullableStr = pydantic.Field(
         default=None, description="Field type (for field elements)."
     )
-    comodel_name: NullableStr = Field(
+    comodel_name: NullableStr = pydantic.Field(
         default=None, description="Comodel name (for relational fields)."
     )
-    signature: NullableStr = Field(
+    signature: NullableStr = pydantic.Field(
         default=None, description="Signature (for method elements)."
     )
-    xml_id: NullableStr = Field(
+    xml_id: NullableStr = pydantic.Field(
         default=None, description="External ID (for data elements)."
     )
-    data_type: NullableStr = Field(
+    data_type: NullableStr = pydantic.Field(
         default=None, description="'data' or 'demo' (for data elements)."
     )
 
 
-class ElementSearchInput(BaseModel):
+class ElementSearchInput(pydantic.BaseModel):
     """Inputs of the `code_search_elements` tool."""
 
-    element_type: Literal["model", "field", "method", "data"] = Field(
+    element_type: Literal["model", "field", "method", "data"] = pydantic.Field(
         description="Type of the elements to search."
     )
-    version: str | None = Field(default=None, description="Odoo version (e.g. '18.0').")
-    module: str | None = Field(default=None, description="Technical module name.")
-    model: str | None = Field(
+    version: str | None = pydantic.Field(
+        default=None, description="Odoo version (e.g. '18.0')."
+    )
+    module: str | None = pydantic.Field(
+        default=None, description="Technical module name."
+    )
+    model: str | None = pydantic.Field(
         default=None,
         description=(
             "Model name the elements belong to (for fields, methods and data)."
         ),
     )
-    name: str | None = Field(
+    name: str | None = pydantic.Field(
         default=None,
         description=(
             "Element name (searched with 'ilike'). For data elements, the "
             "display name, the local XML ID and the full XML ID are searched."
         ),
     )
-    repository: str | None = Field(
+    repository: str | None = pydantic.Field(
         default=None, description="Filter by repository ('name' or 'org/name')."
     )
-    limit: int = Field(default=20, ge=1, description="Number of elements to return.")
-    offset: int = Field(
+    limit: int = pydantic.Field(
+        default=20, ge=1, description="Number of elements to return."
+    )
+    offset: int = pydantic.Field(
         default=0, ge=0, description="Index of the first element to return."
     )
 
 
-class ElementSearchOutput(BaseModel):
+class ElementSearchOutput(pydantic.BaseModel):
     """Output of the `code_search_elements` tool."""
 
     error: str | None = None
@@ -111,127 +159,94 @@ class ElementSearchOutput(BaseModel):
     elements: list[ElementSummary]
 
 
-class ElementDetails(BaseModel):
+class ElementDetails(ElementRef):
     """Full details of a code element."""
 
-    element_type: str = Field(description="'model', 'field', 'method' or 'data'.")
-    name: str = Field(description="Element name.")
-    module: str = Field(description="Technical module name.")
-    version: str = Field(description="Odoo version.")
-    model: NullableStr = Field(
-        default=None,
-        description="Model the element belongs to (None for model elements).",
-    )
     org: NullableStr = None
     repository: NullableStr = None
     # Model elements
-    model_type: NullableStr = Field(
+    model_type: NullableStr = pydantic.Field(
         default=None, description="Model type (for model elements)."
     )
-    order: NullableStr = Field(
+    order: NullableStr = pydantic.Field(
         default=None, description="Model order (for model elements)."
     )
-    inherit: list[str] = Field(
+    inherit: list[str] = pydantic.Field(
         default=[], description="Inherited model names (for model elements)."
     )
-    inherits: list[str] = Field(
+    inherits: list[str] = pydantic.Field(
         default=[], description="Delegated model names (for model elements)."
     )
-    fields: list[ModelFieldSummary] = Field(
+    fields: list[ModelFieldSummary] = pydantic.Field(
         default=[], description="Fields of the model (for model elements)."
     )
-    methods: list[ModelMethodSummary] = Field(
+    methods: list[ModelMethodSummary] = pydantic.Field(
         default=[], description="Methods of the model (for model elements)."
     )
     # Field elements
-    field_type: NullableStr = Field(
+    field_type: NullableStr = pydantic.Field(
         default=None, description="Field type (for field elements)."
     )
-    comodel_name: NullableStr = Field(
+    comodel_name: NullableStr = pydantic.Field(
         default=None, description="Comodel name (for relational fields)."
     )
-    is_relational: bool | None = Field(
+    is_relational: bool | None = pydantic.Field(
         default=None, description="Whether the field is relational."
     )
-    inverse_method: NullableStr = Field(
+    inverse_method: NullableStr = pydantic.Field(
         default=None, description="Inverse method name (for relational fields)."
     )
-    search_method: NullableStr = Field(
+    search_method: NullableStr = pydantic.Field(
         default=None, description="Search method name (for relational fields)."
     )
     # Field and method elements
-    code: NullableStr = Field(
+    code: NullableStr = pydantic.Field(
         default=None, description="Source code (for field and method elements)."
     )
     # Method elements
-    signature: NullableStr = Field(
+    signature: NullableStr = pydantic.Field(
         default=None, description="Signature (for method elements)."
     )
     # Data elements
-    xml_id: NullableStr = Field(
+    xml_id: NullableStr = pydantic.Field(
         default=None, description="External ID (for data elements)."
     )
-    data_type: NullableStr = Field(
+    data_type: NullableStr = pydantic.Field(
         default=None, description="'data' or 'demo' (for data elements)."
     )
-    noupdate: bool | None = Field(
+    noupdate: bool | None = pydantic.Field(
         default=None, description="Whether the data is in noupdate mode."
     )
-    loaded: bool | None = Field(
+    loaded: bool | None = pydantic.Field(
         default=None, description="Whether the data is loaded by the module."
     )
-    is_override: bool | None = Field(
+    is_override: bool | None = pydantic.Field(
         default=None,
         description=(
             "Whether the data record overrides a record of another module "
             "(for data elements)."
         ),
     )
-    overridden_xml_id: NullableStr = Field(
+    overridden_xml_id: NullableStr = pydantic.Field(
         default=None,
         description=(
             "XML ID of the overridden record when 'is_override' is true "
             "(for data elements)."
         ),
     )
-    data_json: NullableStr = Field(
+    data_json: NullableStr = pydantic.Field(
         default=None, description="JSON data of the record (for data elements)."
     )
-    data_xml: NullableStr = Field(
+    data_xml: NullableStr = pydantic.Field(
         default=None, description="XML source of the record (for data elements)."
     )
 
 
-class ElementDetailsInput(BaseModel):
+class ElementDetailsInput(ElementInput):
     """Inputs of the `code_get_element_details` tool."""
 
-    element_type: Literal["model", "field", "method", "data"] = Field(
-        description="Type of the element."
-    )
-    version: str = Field(description="Odoo version (e.g. '18.0').")
-    module: str = Field(description="Technical module name.")
-    name: str = Field(
-        description=(
-            "Element name (the external ID for data elements, local or fully "
-            "qualified)."
-        )
-    )
-    model: str | None = Field(
-        default=None,
-        description=(
-            "Model name the element belongs to (required for fields and methods)."
-        ),
-    )
-    repository: str | None = Field(
-        default=None,
-        description=(
-            "Restrict to one repository ('name' or 'org/name'). "
-            "Required when several repositories host the module."
-        ),
-    )
 
-
-class ElementDetailsOutput(BaseModel):
+class ElementDetailsOutput(pydantic.BaseModel):
     """Output of the `code_get_element_details` tool."""
 
     error: str | None = None
@@ -283,6 +298,45 @@ class OdooModuleBranch(models.Model):
                 domain.append(("name", "ilike", name))
         return domain
 
+    def _mcp_get_element(
+        self,
+        element_type,
+        version,
+        module,
+        model=None,
+        name=None,
+        repository=None,
+    ):
+        """Return the single code element matching the inputs."""
+        domain = self._mcp_get_element_domain(
+            element_type,
+            version=version,
+            module=module,
+            model=model,
+            repository=repository,
+        )
+        if element_type == "model":
+            domain.append(("odoo_model_name", "=", name))
+        elif element_type == "data":
+            domain.extend(["|", ("full_xml_id", "=", name), ("xml_id", "=", name)])
+        else:
+            domain.append(("name", "=", name))
+        elements = self.env[ELEMENT_MODELS[element_type]].search(domain)
+        if not elements:
+            context = f" (model '{model}')" if model else ""
+            raise ValueError(
+                f"No {element_type} '{name}' found for module '{module}' "
+                f"on Odoo version '{version}'{context}."
+            )
+        if len(elements) > 1:
+            repositories = ", ".join(elements.mapped("repository_id.display_name"))
+            raise ValueError(
+                f"The {element_type} '{name}' is defined in several repositories "
+                f"for module '{module}' on Odoo version '{version}': "
+                f"{repositories}. Please specify the 'repository' input."
+            )
+        return elements
+
     # ------------------------------------------------------------------
     # MCP tools
     # ------------------------------------------------------------------
@@ -332,32 +386,12 @@ class OdooModuleBranch(models.Model):
             raise ValueError(
                 f"The 'model' input is required for {element_type} elements."
             )
-        element_model = ELEMENT_MODELS[element_type]
-        domain = self._mcp_get_element_domain(
+        element = self._mcp_get_element(
             element_type,
-            version=version,
-            module=module,
+            version,
+            module,
             model=model,
+            name=name,
             repository=repository,
         )
-        if element_type == "model":
-            domain.append(("odoo_model_name", "=", name))
-        elif element_type == "data":
-            domain.extend(["|", ("full_xml_id", "=", name), ("xml_id", "=", name)])
-        else:
-            domain.append(("name", "=", name))
-        elements = self.env[element_model].search(domain)
-        if not elements:
-            context = f" (model '{model}')" if model else ""
-            raise ValueError(
-                f"No {element_type} '{name}' found for module '{module}' "
-                f"on Odoo version '{version}'{context}."
-            )
-        if len(elements) > 1:
-            repositories = ", ".join(elements.mapped("repository_id.display_name"))
-            raise ValueError(
-                f"The {element_type} '{name}' is defined in several repositories "
-                f"for module '{module}' on Odoo version '{version}': "
-                f"{repositories}. Please specify the 'repository' input."
-            )
-        return {"element": elements._mcp_get_details()}
+        return {"element": element._mcp_get_details()}
