@@ -26,3 +26,16 @@ class TestCodeTimelineSecurity(McpCodeMigrationCommon):
             dict(values, state="draft")
         )
         self.assertTrue(record.exists())
+
+    def test_write_tool_returns_structured_error(self):
+        timeline_model = self.env["odoo.code.timeline"]
+        result = timeline_model.with_user(self.reader_user)._ai_code_create_timeline(
+            element_type="field",
+            version="17.0",
+            module="test_module_a",
+            model="res.partner",
+            name="gone_field",
+            timeline_type="removed",
+        )
+        self.assertIsNotNone(result["error"])
+        self.assertNotIn("timeline", result)

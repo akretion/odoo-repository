@@ -253,7 +253,7 @@ class AbsentElementsInput(pydantic.BaseModel):
         ),
     )
     limit: int = pydantic.Field(
-        default=50, ge=1, description="Number of elements to return."
+        default=50, ge=1, le=500, description="Number of elements to return."
     )
     offset: int = pydantic.Field(
         default=0, ge=0, description="Index of the first element to return."
@@ -646,39 +646,45 @@ class OdooModuleBranch(models.Model):
         )
         return elements, next_version
 
-    def _mcp_count_absent_timelines(self, rows):
-        """Count the timeline distribution of absent element rows."""
+    def _mcp_get_absent_timeline(self, element, timelines):
+        """Return the timeline covering an absent element, if any."""
+        element_type = self.env["odoo.code.timeline"]._get_element_type(element._name)
+        return timelines.get(element_type, {}).get(element.id)
+
+    def _mcp_count_absent_timelines(self, elements, timelines):
+        """Count the timeline distribution of absent elements."""
         counts = Counter()
-        for row in rows:
-            timeline = row["timeline"]
+        for element in elements:
+            timeline = self._mcp_get_absent_timeline(element, timelines)
             if not timeline:
                 counts["uncovered"] += 1
-            elif timeline["state"] == "draft":
+            elif timeline.state == "draft":
                 counts["draft"] += 1
-            elif timeline["type"] == "removed":
+            elif timeline.timeline_type == "removed":
                 counts["removed"] += 1
             else:
                 counts["moved"] += 1
         return counts
 
-    def _mcp_filter_absent_rows(self, rows, timeline_state, timeline_type):
-        """Filter absent element rows on their timeline."""
-        if timeline_state:
-            if timeline_state == "none":
-                rows = [row for row in rows if not row["timeline"]]
-            else:
-                rows = [
-                    row
-                    for row in rows
-                    if row["timeline"] and row["timeline"]["state"] == timeline_state
-                ]
-        if timeline_type:
-            rows = [
-                row
-                for row in rows
-                if row["timeline"] and row["timeline"]["type"] == timeline_type
-            ]
-        return rows
+    def _mcp_filter_absent_elements(
+        self, elements, timelines, timeline_state, timeline_type
+    ):
+        """Filter absent elements on their timeline."""
+        filtered = []
+        for element in elements:
+            timeline = self._mcp_get_absent_timeline(element, timelines)
+            if timeline_state:
+                if timeline_state == "none":
+                    if timeline:
+                        continue
+                elif not timeline or timeline.state != timeline_state:
+                    continue
+            if timeline_type and (
+                not timeline or timeline.timeline_type != timeline_type
+            ):
+                continue
+            filtered.append(element)
+        return filtered
 
     @mcp_tool(AbsentElementsInput, AbsentElementsOutput)
     def _ai_code_list_absent_elements(
@@ -710,6 +716,12 @@ class OdooModuleBranch(models.Model):
             active_data_filters,
         )
         timelines = self._mcp_get_element_timelines(elements)
+        counts = self._mcp_count_absent_timelines(elements, timelines)
+        elements = self._mcp_filter_absent_elements(
+            elements, timelines, timeline_state, timeline_type
+        )
+        total = len(elements)
+        elements = elements[offset : offset + limit]
         next_defined_in = self._mcp_get_next_defined_in(elements, next_version)
         rows = [
             self._mcp_absent_element_dict(
@@ -717,10 +729,6 @@ class OdooModuleBranch(models.Model):
             )
             for element in elements
         ]
-        counts = self._mcp_count_absent_timelines(rows)
-        rows = self._mcp_filter_absent_rows(rows, timeline_state, timeline_type)
-        total = len(rows)
-        rows = rows[offset : offset + limit]
         return {
             "total": total,
             "next_version": next_version.name,

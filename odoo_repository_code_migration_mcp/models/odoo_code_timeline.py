@@ -82,7 +82,7 @@ class TimelineListInput(pydantic.BaseModel):
         default=None, description="Filter by repository ('name' or 'org/name')."
     )
     limit: int = pydantic.Field(
-        default=50, ge=1, description="Number of timelines to return."
+        default=50, ge=1, le=500, description="Number of timelines to return."
     )
     offset: int = pydantic.Field(
         default=0, ge=0, description="Index of the first timeline to return."

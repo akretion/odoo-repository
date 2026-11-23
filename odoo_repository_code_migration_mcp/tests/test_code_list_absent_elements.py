@@ -213,6 +213,24 @@ class TestCodeListAbsentElements(McpCodeMigrationCommon):
         self.assertEqual(result["total"], 6)
         self.assertEqual(len(result["elements"]), 2)
 
+    def test_list__timeline_filter_pagination(self):
+        result = self.env["odoo.module.branch"]._ai_code_list_absent_elements(
+            module="test_module_a",
+            version="17.0",
+            timeline_state="none",
+            limit=2,
+            offset=1,
+        )
+        self.assertEqual(result["total"], 4)
+        self.assertEqual(len(result["elements"]), 2)
+        self.assertTrue(
+            all(element["timeline"] is None for element in result["elements"])
+        )
+        self.assertEqual(
+            result["counts"],
+            {"uncovered": 4, "draft": 1, "removed": 1, "moved": 0},
+        )
+
     def test_list__repository_filter(self):
         model = self.env["odoo.module.branch"]
         result = model._ai_code_list_absent_elements(
