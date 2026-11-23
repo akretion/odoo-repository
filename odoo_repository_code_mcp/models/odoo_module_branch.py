@@ -136,8 +136,20 @@ class ElementSearchInput(pydantic.BaseModel):
     name: str | None = pydantic.Field(
         default=None,
         description=(
-            "Element name (searched with 'ilike'). For data elements, the "
-            "display name, the local XML ID and the full XML ID are searched."
+            "Element name (searched with 'ilike' by default). For data "
+            "elements, the display name, the local XML ID and the full XML ID "
+            "are searched."
+        ),
+    )
+    exact: bool = pydantic.Field(
+        default=False,
+        description="Match the name exactly instead of using 'ilike'.",
+    )
+    xml_id: str | None = pydantic.Field(
+        default=None,
+        description=(
+            "Data element XML ID, exact match (full XML ID recommended). "
+            "Only supported for data elements."
         ),
     )
     repository: str | None = pydantic.Field(
@@ -267,6 +279,8 @@ class OdooModuleBranch(models.Model):
         module=None,
         model=None,
         name=None,
+        exact=False,
+        xml_id=None,
         repository=None,
     ):
         """Return the domain to search code elements of a given type."""
@@ -281,21 +295,32 @@ class OdooModuleBranch(models.Model):
             )
         if model:
             domain.append(("odoo_model_name", "=", model))
+        if xml_id and element_type != "data":
+            raise ValueError("The 'xml_id' filter is only supported for data elements.")
+        operator = "=" if exact else "ilike"
         if name:
             if element_type == "model":
-                domain.append(("odoo_model_name", "ilike", name))
+                domain.append(("odoo_model_name", operator, name))
             elif element_type == "data":
                 domain.extend(
                     [
                         "|",
                         "|",
-                        ("name", "ilike", name),
-                        ("xml_id", "ilike", name),
-                        ("full_xml_id", "ilike", name),
+                        ("name", operator, name),
+                        ("xml_id", operator, name),
+                        ("full_xml_id", operator, name),
                     ]
                 )
             else:
-                domain.append(("name", "ilike", name))
+                domain.append(("name", operator, name))
+        if xml_id:
+            domain.extend(
+                [
+                    "|",
+                    ("full_xml_id", "=", xml_id),
+                    ("xml_id", "=", xml_id),
+                ]
+            )
         return domain
 
     def _mcp_get_element(
@@ -349,6 +374,8 @@ class OdooModuleBranch(models.Model):
         module=None,
         model=None,
         name=None,
+        exact=None,
+        xml_id=None,
         repository=None,
         limit=None,
         offset=None,
@@ -361,6 +388,8 @@ class OdooModuleBranch(models.Model):
             module=module,
             model=model,
             name=name,
+            exact=exact,
+            xml_id=xml_id,
             repository=repository,
         )
         elements = self.env[element_model]

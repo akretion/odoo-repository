@@ -86,6 +86,42 @@ class TestCodeSearchElements(McpCodeCommon):
         )
         self.assertEqual(result["total"], 1)
 
+    def test_search__exact_filter(self):
+        self.env["odoo.module.branch.model.field"].create(
+            {
+                "module_branch_model_id": self.model_partner.id,
+                "name": "partner_ids",
+                "field_type": "One2many",
+            }
+        )
+        model = self.env["odoo.module.branch"]
+        result = model._ai_code_search_elements(element_type="field", name="partner_id")
+        self.assertEqual(result["total"], 2)
+        result = model._ai_code_search_elements(
+            element_type="field", name="partner_id", exact=True
+        )
+        self.assertEqual(result["total"], 1)
+        self.assertEqual(result["elements"][0]["name"], "partner_id")
+
+    def test_search__xml_id_filter(self):
+        model = self.env["odoo.module.branch"]
+        result = model._ai_code_search_elements(
+            element_type="data", xml_id="test_module_a.partner_test"
+        )
+        self.assertIsNone(result["error"])
+        self.assertEqual(result["total"], 1)
+        self.assertEqual(result["elements"][0]["xml_id"], "test_module_a.partner_test")
+        result = model._ai_code_search_elements(
+            element_type="data", xml_id="partner_test"
+        )
+        self.assertIsNone(result["error"])
+        self.assertEqual(result["total"], 1)
+        result = model._ai_code_search_elements(
+            element_type="model", xml_id="test_module_a.partner_test"
+        )
+        self.assertIsNotNone(result["error"])
+        self.assertIn("data elements", result["error"])
+
     def test_search__pagination(self):
         model = self.env["odoo.module.branch"]
         result = model._ai_code_search_elements(element_type="model", limit=2)

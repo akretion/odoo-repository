@@ -26,13 +26,15 @@ class TestToolSchemas(McpCodeCommon):
             if limit_schema:
                 self.assertEqual(limit_schema["maximum"], 500, method_name)
 
-        element_type_schema = self._tool("_ai_code_search_elements")["input_schema"][
+        search_props = self._tool("_ai_code_search_elements")["input_schema"][
             "properties"
-        ]["element_type"]
+        ]
         self.assertEqual(
-            set(element_type_schema["enum"]),
+            set(search_props["element_type"]["enum"]),
             {"model", "field", "method", "data"},
         )
+        self.assertIn("exact", search_props)
+        self.assertIn("xml_id", search_props)
 
     def test_tool_outputs(self):
         tool = self._tool("_ai_code_search_elements")
