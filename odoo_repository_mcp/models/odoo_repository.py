@@ -2,33 +2,33 @@
 # @author Sébastien Alix <sebastien.alix@akretion.com>
 # License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl)
 
-from pydantic import BaseModel, Field
+import pydantic
 
 from odoo import models
 
 from ..utils import mcp_tool
 
 
-class RepositorySummary(BaseModel):
+class RepositorySummary(pydantic.BaseModel):
     """Repository scanned by the Odoo MCA."""
 
-    org: str = Field(description="Organization owning the repository.")
-    name: str = Field(description="Repository name.")
-    branches: list[str] = Field(description="Odoo versions available.")
-    specific: bool = Field(
+    org: str = pydantic.Field(description="Organization owning the repository.")
+    name: str = pydantic.Field(description="Repository name.")
+    branches: list[str] = pydantic.Field(description="Odoo versions available.")
+    specific: bool = pydantic.Field(
         description="Whether the repository hosts project-specific modules."
     )
 
 
-class RepoListRepositoriesInput(BaseModel):
+class RepoListRepositoriesInput(pydantic.BaseModel):
     """Inputs of the `repo_list_repositories` tool."""
 
-    org: str | None = Field(
+    org: str | None = pydantic.Field(
         default=None, description="Filter by organization name (e.g. 'OCA')."
     )
 
 
-class RepoListRepositoriesOutput(BaseModel):
+class RepoListRepositoriesOutput(pydantic.BaseModel):
     """Output of the `repo_list_repositories` tool."""
 
     error: str | None = None

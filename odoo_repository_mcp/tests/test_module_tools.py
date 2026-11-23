@@ -125,7 +125,9 @@ class TestModuleTools(McpCommon):
         self.assertEqual(len(result["modules"]), 1)
         module = result["modules"][0]
         self.assertEqual(module["module"], "test_module_a")
-        self.assertEqual(module["branch"], "18.0")
+        self.assertEqual(module["version"], "18.0")
+        self.assertEqual(module["repository"]["org"], "TestOCA")
+        self.assertEqual(module["repository"]["name"], "test-repo")
         self.assertEqual(module["title"], "Module A")
         self.assertEqual(module["depends"], ["test_module_b"])
         self.assertEqual(module["authors"], ["Test Author"])

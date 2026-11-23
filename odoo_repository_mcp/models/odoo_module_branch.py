@@ -4,7 +4,7 @@
 
 from typing import Literal
 
-from pydantic import BaseModel, Field
+import pydantic
 
 from odoo import models
 
@@ -15,43 +15,52 @@ from ..utils import NullableDict, NullableStr, mcp_tool
 # ---------------------------------------------------------------------------
 
 
-class ModuleSummary(BaseModel):
+class ModuleRef(pydantic.BaseModel):
+    """Reference to a module on a given Odoo version."""
+
+    module: str = pydantic.Field(description="Module technical name.")
+    version: str = pydantic.Field(description="Odoo version.")
+    title: NullableStr = pydantic.Field(default=None, description="Descriptive name.")
+
+
+class ModuleSummary(ModuleRef):
     """Summary of a module on a given Odoo version."""
 
-    module: str = Field(description="Module technical name.")
-    version: str = Field(description="Odoo version.")
-    org: str = Field(description="Organization owning the repository.")
-    repository: str = Field(description="Repository name.")
-    title: NullableStr = Field(default=None, description="Descriptive name.")
-    summary: NullableStr = Field(default=None, description="Module summary.")
-    category: NullableStr = Field(default=None, description="Module category.")
-    license: NullableStr = Field(default=None, description="License.")
-    authors: list[str] = Field(default=[], description="Author names.")
-    development_status: NullableStr = Field(
+    org: str = pydantic.Field(description="Organization owning the repository.")
+    repository: str = pydantic.Field(description="Repository name.")
+    summary: NullableStr = pydantic.Field(default=None, description="Module summary.")
+    category: NullableStr = pydantic.Field(default=None, description="Module category.")
+    license: NullableStr = pydantic.Field(default=None, description="License.")
+    authors: list[str] = pydantic.Field(default=[], description="Author names.")
+    development_status: NullableStr = pydantic.Field(
         default=None, description="Development status."
     )
-    application: bool = Field(description="Whether the module is an application.")
-    installable: bool = Field(description="Whether the module is installable.")
-    auto_install: bool = Field(description="Whether the module is auto-installed.")
-    removed: bool = Field(
+    application: bool = pydantic.Field(
+        description="Whether the module is an application."
+    )
+    installable: bool = pydantic.Field(description="Whether the module is installable.")
+    auto_install: bool = pydantic.Field(
+        description="Whether the module is auto-installed."
+    )
+    removed: bool = pydantic.Field(
         description="Whether the module was removed from the repository."
     )
-    specific: bool = Field(
+    specific: bool = pydantic.Field(
         description="Whether the module is specific to a project repository."
     )
-    is_standard: bool = Field(
+    is_standard: bool = pydantic.Field(
         description="Whether the module is part of the Odoo standard."
     )
-    is_enterprise: bool = Field(
+    is_enterprise: bool = pydantic.Field(
         description="Whether the module is an Odoo Enterprise module."
     )
-    is_community: bool = Field(
+    is_community: bool = pydantic.Field(
         description="Whether the module is a community contribution."
     )
-    global_dependency_level: int = Field(
+    global_dependency_level: int = pydantic.Field(
         description="Dependency level including all standard Odoo modules."
     )
-    non_std_dependency_level: int = Field(
+    non_std_dependency_level: int = pydantic.Field(
         description=(
             "Dependency level excluding standard Odoo modules "
             "(0 for standard Odoo modules)."
@@ -59,30 +68,34 @@ class ModuleSummary(BaseModel):
     )
 
 
-class ModuleSearchInput(BaseModel):
+class ModuleSearchInput(pydantic.BaseModel):
     """Inputs of the `module_search` tool."""
 
-    name: str | None = Field(
+    name: str | None = pydantic.Field(
         default=None, description="Module technical name (searched with 'ilike')."
     )
-    version: str | None = Field(default=None, description="Odoo version (e.g. '18.0').")
-    org: str | None = Field(
+    version: str | None = pydantic.Field(
+        default=None, description="Odoo version (e.g. '18.0')."
+    )
+    org: str | None = pydantic.Field(
         default=None, description="Organization owning the repository (e.g. 'OCA')."
     )
-    repository: str | None = Field(
+    repository: str | None = pydantic.Field(
         default=None, description="Repository name ('name' or 'org/name')."
     )
-    category: str | None = Field(
+    category: str | None = pydantic.Field(
         default=None, description="Module category (e.g. 'Tools')."
     )
-    author: str | None = Field(default=None, description="Module author name.")
-    limit: int = Field(default=20, ge=1, description="Number of modules to return.")
-    offset: int = Field(
+    author: str | None = pydantic.Field(default=None, description="Module author name.")
+    limit: int = pydantic.Field(
+        default=20, ge=1, description="Number of modules to return."
+    )
+    offset: int = pydantic.Field(
         default=0, ge=0, description="Index of the first module to return."
     )
 
 
-class ModuleSearchOutput(BaseModel):
+class ModuleSearchOutput(pydantic.BaseModel):
     """Output of the `module_search` tool."""
 
     error: str | None = None
@@ -90,19 +103,23 @@ class ModuleSearchOutput(BaseModel):
     modules: list[ModuleSummary]
 
 
-class RepositoryInfo(BaseModel):
-    """Repository (and branch) hosting a module."""
+class RepositoryInfo(pydantic.BaseModel):
+    """Repository hosting a module."""
 
-    org: str
-    name: str
-    repo_url: str
-    repo_type: NullableStr = None
-    active: bool
-    branch: str
-    last_scanned_commit: NullableStr = None
+    org: str = pydantic.Field(description="Organization owning the repository.")
+    name: str = pydantic.Field(description="Repository name.")
+    repo_url: str = pydantic.Field(description="Repository URL.")
+    repo_type: NullableStr = pydantic.Field(
+        default=None, description="Repository type."
+    )
+    active: bool = pydantic.Field(description="Whether the repository is active.")
+    last_scanned_commit: NullableStr = pydantic.Field(
+        default=None,
+        description="Last commit scanned for the repository branch.",
+    )
 
 
-class ModuleVersionInfo(BaseModel):
+class ModuleVersionInfo(pydantic.BaseModel):
     """Version (manifest value) of a module, with its commit."""
 
     name: str
@@ -112,23 +129,20 @@ class ModuleVersionInfo(BaseModel):
     sequence: int
 
 
-class ModuleDetails(BaseModel):
+class ModuleDetails(ModuleRef):
     """Full details of a module on a given Odoo version."""
 
-    module: str = Field(description="Module technical name.")
-    # Odoo version (key kept as 'branch' to align with the odoo_repository
-    # exchange format)
-    branch: str = Field(description="Odoo version.")
-    repository: RepositoryInfo
-    title: NullableStr = None
+    repository: RepositoryInfo = pydantic.Field(
+        description="Repository hosting the module."
+    )
     summary: NullableStr = None
     authors: list[str] = []
     maintainers: list[str] = []
     depends: list[str] = []
-    global_dependency_level: int = Field(
+    global_dependency_level: int = pydantic.Field(
         description="Dependency level including all standard Odoo modules."
     )
-    non_std_dependency_level: int = Field(
+    non_std_dependency_level: int = pydantic.Field(
         description=(
             "Dependency level excluding standard Odoo modules "
             "(0 for standard Odoo modules)."
@@ -136,7 +150,9 @@ class ModuleDetails(BaseModel):
     )
     category: NullableStr = None
     license: NullableStr = None
-    version: NullableStr = None
+    manifest_version: NullableStr = pydantic.Field(
+        default=None, description="Last version declared in the manifest."
+    )
     versions: list[ModuleVersionInfo] = []
     development_status: NullableStr = None
     application: bool
@@ -156,12 +172,12 @@ class ModuleDetails(BaseModel):
     url: NullableStr = None
 
 
-class ModuleDetailsInput(BaseModel):
+class ModuleDetailsInput(pydantic.BaseModel):
     """Inputs of the `module_get_details` tool."""
 
-    module: str = Field(description="Module technical name.")
-    version: str = Field(description="Odoo version (e.g. '18.0').")
-    repository: str | None = Field(
+    module: str = pydantic.Field(description="Module technical name.")
+    version: str = pydantic.Field(description="Odoo version (e.g. '18.0').")
+    repository: str | None = pydantic.Field(
         default=None,
         description=(
             "Restrict to one repository ('name' or 'org/name'). "
@@ -170,27 +186,29 @@ class ModuleDetailsInput(BaseModel):
     )
 
 
-class ModuleDetailsOutput(BaseModel):
+class ModuleDetailsOutput(pydantic.BaseModel):
     """Output of the `module_get_details` tool."""
 
     error: str | None = None
     modules: list[ModuleDetails]
 
 
-class DependencySummary(BaseModel):
-    """Summary of a module related to the dependencies of another one."""
+class DependencySummary(ModuleRef):
+    """Summary of a module related to the dependencies of another one.
 
-    module: str = Field(description="Module technical name.")
-    version: str = Field(description="Odoo version.")
-    # Orphaned modules (dependency stubs) have no organization nor
-    # repository yet
-    org: NullableStr = None
-    repository: NullableStr = None
-    title: NullableStr = None
-    global_dependency_level: int = Field(
+    Orphaned modules (dependency stubs) have no organization nor repository.
+    """
+
+    org: NullableStr = pydantic.Field(
+        default=None, description="Organization owning the repository."
+    )
+    repository: NullableStr = pydantic.Field(
+        default=None, description="Repository name."
+    )
+    global_dependency_level: int = pydantic.Field(
         description="Dependency level including all standard Odoo modules."
     )
-    non_std_dependency_level: int = Field(
+    non_std_dependency_level: int = pydantic.Field(
         description=(
             "Dependency level excluding standard Odoo modules "
             "(0 for standard Odoo modules)."
@@ -198,39 +216,41 @@ class DependencySummary(BaseModel):
     )
 
 
-class ModuleDependenciesInput(BaseModel):
+class ModuleDependenciesInput(pydantic.BaseModel):
     """Inputs of the `module_get_dependencies` tool."""
 
-    module: str = Field(description="Module technical name.")
-    version: str = Field(description="Odoo version (e.g. '18.0').")
-    repository: str | None = Field(
+    module: str = pydantic.Field(description="Module technical name.")
+    version: str = pydantic.Field(description="Odoo version (e.g. '18.0').")
+    repository: str | None = pydantic.Field(
         default=None,
         description=(
             "Restrict to one repository ('name' or 'org/name'). "
             "Required when several repositories host the module."
         ),
     )
-    direction: Literal["depends", "reverse"] | None = Field(
+    direction: Literal["depends", "reverse"] | None = pydantic.Field(
         default=None,
         description=(
             "'depends' (default) for the dependencies of the module, "
             "'reverse' for the modules depending on it."
         ),
     )
-    scope: Literal["direct", "recursive"] | None = Field(
+    scope: Literal["direct", "recursive"] | None = pydantic.Field(
         default=None, description="'direct' (default) or 'recursive'."
     )
-    org: str | None = Field(
+    org: str | None = pydantic.Field(
         default=None,
         description="Filter the modules by organization (e.g. 'OCA').",
     )
-    limit: int = Field(default=20, ge=1, description="Number of modules to return.")
-    offset: int = Field(
+    limit: int = pydantic.Field(
+        default=20, ge=1, description="Number of modules to return."
+    )
+    offset: int = pydantic.Field(
         default=0, ge=0, description="Index of the first module to return."
     )
 
 
-class ModuleDependenciesOutput(BaseModel):
+class ModuleDependenciesOutput(pydantic.BaseModel):
     """Output of the `module_get_dependencies` tool."""
 
     error: str | None = None
@@ -238,24 +258,31 @@ class ModuleDependenciesOutput(BaseModel):
     dependencies: list[DependencySummary]
 
 
-class ModuleVersionSummary(BaseModel):
+class ModuleVersionRef(pydantic.BaseModel):
+    """Version and repository hosting a module."""
+
+    version: str = pydantic.Field(description="Odoo version.")
+    org: str = pydantic.Field(description="Organization owning the repository.")
+    repository: str = pydantic.Field(description="Repository name.")
+
+
+class ModuleVersionSummary(ModuleVersionRef):
     """Version of a module, across the Odoo versions and repositories."""
 
-    version: str = Field(description="Odoo version.")
-    org: str = Field(description="Organization owning the repository.")
-    repository: str = Field(description="Repository name.")
-    manifest_version: str = Field(description="Version declared in the manifest.")
+    manifest_version: str = pydantic.Field(
+        description="Version declared in the manifest."
+    )
     commit: NullableStr = None
     has_migration_script: bool
 
 
-class ModuleVersionsInput(BaseModel):
+class ModuleVersionsInput(pydantic.BaseModel):
     """Inputs of the `module_list_versions` tool."""
 
-    module: str = Field(description="Module technical name.")
+    module: str = pydantic.Field(description="Module technical name.")
 
 
-class ModuleVersionsOutput(BaseModel):
+class ModuleVersionsOutput(pydantic.BaseModel):
     """Output of the `module_list_versions` tool."""
 
     error: str | None = None
@@ -473,9 +500,21 @@ class OdooModuleBranch(models.Model):
         modules = []
         for module_branch in module_branches:
             data = module_branch._to_dict()
-            data["url"] = module_branch.url
-            data["global_dependency_level"] = module_branch.global_dependency_level
-            data["non_std_dependency_level"] = module_branch.non_std_dependency_level
+            repository = data.pop("repository")
+            repository.pop("branch")
+            manifest_version = data.pop("version")
+            data["version"] = data.pop("branch")
+            data["manifest_version"] = manifest_version
+            data.update(
+                {
+                    "repository": repository,
+                    "url": module_branch.url,
+                    "global_dependency_level": (module_branch.global_dependency_level),
+                    "non_std_dependency_level": (
+                        module_branch.non_std_dependency_level
+                    ),
+                }
+            )
             modules.append(data)
         return {"modules": modules}
 

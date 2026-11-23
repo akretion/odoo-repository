@@ -2,22 +2,22 @@
 # @author Sébastien Alix <sebastien.alix@akretion.com>
 # License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl)
 
-from pydantic import BaseModel, Field
+import pydantic
 
 from odoo import models
 
 from ..utils import NoInputs, NullableStr, mcp_tool
 
 
-class VersionInfo(BaseModel):
+class VersionInfo(pydantic.BaseModel):
     """Odoo version known to the database."""
 
-    name: str = Field(description="Odoo version (e.g. '18.0').")
+    name: str = pydantic.Field(description="Odoo version (e.g. '18.0').")
     next: NullableStr = None
     previous: NullableStr = None
 
 
-class RepoVersionsOutput(BaseModel):
+class RepoVersionsOutput(pydantic.BaseModel):
     """Output of the `repo_list_versions` tool."""
 
     error: str | None = None

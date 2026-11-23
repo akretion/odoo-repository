@@ -3,10 +3,9 @@
 # License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl)
 
 import functools
-import re
 from typing import Annotated
 
-from pydantic import BaseModel, BeforeValidator
+import pydantic
 
 from odoo.addons.ai_tool.tools import aitool
 
@@ -16,28 +15,15 @@ def _unset_to_none(value):
     return None if value is False else value
 
 
-SOURCE_OF_TRUTH_PATTERN = re.compile(r"https?://\S+")
-
-
-def check_source_of_truth(note):
-    """Ensure a note carries at least one source of truth URL.
-
-    High-confidence timelines (created or confirmed through the MCP tools)
-    must document the upstream change they rely on: a GitHub commit URL,
-    an OpenUpgrade migration script URL, ...
-    """
-    if not note or not SOURCE_OF_TRUTH_PATTERN.search(note):
-        raise ValueError(
-            "A source of truth URL is required in 'note' to confirm a "
-            "timeline (e.g. the GitHub commit or the OpenUpgrade "
-            "migration script URL)."
-        )
-
-
 # Odoo represents the unset values of its string (and serialized) fields
 # with False: the tool inputs and outputs carry them as None instead
-NullableStr = Annotated[str | None, BeforeValidator(_unset_to_none)]
-NullableDict = Annotated[dict | None, BeforeValidator(_unset_to_none)]
+NullableStr = Annotated[str | None, pydantic.BeforeValidator(_unset_to_none)]
+NullableDict = Annotated[dict | None, pydantic.BeforeValidator(_unset_to_none)]
+
+REPOSITORY_DESCRIPTION = (
+    "Restrict to one repository ('name' or 'org/name'). "
+    "Required when several repositories host the module."
+)
 
 
 def _model_properties(model):
@@ -118,5 +104,5 @@ def mcp_tool(input_model, output_model):
     return decorator
 
 
-class NoInputs(BaseModel):
+class NoInputs(pydantic.BaseModel):
     """No input."""
