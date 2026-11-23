@@ -87,6 +87,13 @@ def mcp_tool(input_model, output_model):
         @functools.wraps(func)
         def wrapper(self, **kwargs):
             try:
+                unknown_inputs = set(kwargs) - set(input_model.model_fields)
+                if unknown_inputs:
+                    allowed_inputs = ", ".join(sorted(input_model.model_fields))
+                    raise ValueError(
+                        f"Unknown input(s): {', '.join(sorted(unknown_inputs))}. "
+                        f"Allowed inputs: {allowed_inputs}."
+                    )
                 inputs = input_model(**kwargs)
                 result = func(self, **inputs.model_dump())
                 return output_model(**result).model_dump(mode="json")

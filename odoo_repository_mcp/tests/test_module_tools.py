@@ -68,6 +68,12 @@ class TestModuleTools(McpCommon):
             result = self.env["odoo.module.branch"]._ai_module_search(**kwargs)
             self.assertIsNotNone(result["error"], kwargs)
 
+    def test_module_search__unknown_input(self):
+        result = self.env["odoo.module.branch"]._ai_module_search(query="test_module_a")
+        self.assertIsNotNone(result["error"])
+        self.assertIn("query", result["error"])
+        self.assertIn("name", result["error"])
+
     def test_module_search__pagination(self):
         model = self.env["odoo.module.branch"]
         result = model._ai_module_search(version="18.0", limit=2)
