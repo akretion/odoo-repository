@@ -17,8 +17,10 @@
     "installable": True,
     "depends": [
         # OCA/module-composition-analysis
+        "odoo_repository_code_mcp",
         "odoo_repository_code_migration",
         "odoo_repository_mcp",
+        "odoo_repository_migration_mcp",
     ],
     "external_dependencies": {
         "python": [

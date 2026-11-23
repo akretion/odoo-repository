@@ -5,97 +5,51 @@
 from collections import Counter, defaultdict
 from typing import Literal
 
-from pydantic import BaseModel, Field
+import pydantic
 
 from odoo import models
 
+from odoo.addons.odoo_repository_code_mcp.models.odoo_module_branch import (
+    ELEMENT_MODELS,
+    ElementInput,
+    ElementRef,
+)
 from odoo.addons.odoo_repository_mcp.utils import NullableStr, mcp_tool
-
-ELEMENT_MODELS = {
-    "model": "odoo.module.branch.model",
-    "field": "odoo.module.branch.model.field",
-    "method": "odoo.module.branch.model.method",
-    "data": "odoo.module.branch.data",
-}
-
 
 # ---------------------------------------------------------------------------
 # Pydantic models of the MCP tools
 # ---------------------------------------------------------------------------
 
 
-class ElementRef(BaseModel):
-    """Reference to a code element."""
-
-    element_type: str = Field(description="'model', 'field', 'method' or 'data'.")
-    module: str = Field(description="Technical module name.")
-    version: str = Field(description="Odoo version.")
-    model: NullableStr = Field(
-        default=None,
-        description="Model the element belongs to (None for model elements).",
-    )
-    name: str = Field(description="Element name (the full XML ID for data elements).")
-
-
-class ElementInput(BaseModel):
-    """Inputs identifying a code element."""
-
-    element_type: Literal["model", "field", "method", "data"] = Field(
-        description="Type of the element."
-    )
-    version: str = Field(description="Odoo version of the element (e.g. '17.0').")
-    module: str = Field(description="Technical module name.")
-    model: str | None = Field(
-        default=None,
-        description=(
-            "Model name the element belongs to (required for fields and methods)."
-        ),
-    )
-    name: str = Field(
-        description=(
-            "Element name (the external ID for data elements, local or fully "
-            "qualified)."
-        )
-    )
-    repository: str | None = Field(
-        default=None,
-        description=(
-            "Restrict to one repository ('name' or 'org/name'). "
-            "Required when several repositories host the module."
-        ),
-    )
-
-
-class TimelineRef(BaseModel):
+class TimelineRef(pydantic.BaseModel):
     """Timeline linked to a code element."""
 
-    id: int = Field(description="Timeline record id.")
-    type: Literal["moved", "removed"] = Field(
+    id: int = pydantic.Field(description="Timeline record id.")
+    type: Literal["moved", "removed"] = pydantic.Field(
         description="'moved' (renamed or replaced) or 'removed'."
     )
-    state: Literal["draft", "confirmed"] = Field(
+    state: Literal["draft", "confirmed"] = pydantic.Field(
         description="'draft' (proposal pending review) or 'confirmed'."
     )
-    target: ElementRef | None = Field(
+    target: ElementRef | None = pydantic.Field(
         default=None, description="Target element of a move, if any."
     )
 
 
-class NextVersionOutput(BaseModel):
+class NextVersionOutput(pydantic.BaseModel):
     """Output of the `code_get_next_version_element` tool."""
 
     error: str | None = None
-    state: NullableStr = Field(
-        default=None,
+    state: Literal["unknown", "available", "absent"] = pydantic.Field(
         description=(
             "Next version state: 'unknown' (the next version is not scanned "
             "yet), 'available' or 'absent'."
         ),
     )
-    next: ElementRef | None = Field(
+    next: ElementRef | None = pydantic.Field(
         default=None, description="Confirmed next version counterpart, if any."
     )
-    timeline: TimelineRef | None = Field(
+    timeline: TimelineRef | None = pydantic.Field(
         default=None,
         description=(
             "Timeline covering the element, if any. A draft move/removal is "
@@ -107,36 +61,36 @@ class NextVersionOutput(BaseModel):
 class HistoryEntry(ElementRef):
     """Step of the version chain of a code element."""
 
-    timeline: TimelineRef | None = Field(
+    timeline: TimelineRef | None = pydantic.Field(
         default=None,
         description="Timeline linking the element to its next version, if any.",
     )
 
 
-class HistoryOutput(BaseModel):
+class HistoryOutput(pydantic.BaseModel):
     """Output of the `code_get_element_history` tool."""
 
     error: str | None = None
     history: list[HistoryEntry]
 
 
-class ElementLineageStep(BaseModel):
+class ElementLineageStep(pydantic.BaseModel):
     """Existing element at one Odoo version in a lineage."""
 
-    version: str = Field(description="Odoo version.")
-    element: ElementRef = Field(description="Element at this version.")
-    timeline: TimelineRef | None = Field(
+    version: str = pydantic.Field(description="Odoo version.")
+    element: ElementRef = pydantic.Field(description="Element at this version.")
+    timeline: TimelineRef | None = pydantic.Field(
         default=None,
         description="Outgoing timeline from this element, if any.",
     )
 
 
-class ElementLineage(BaseModel):
+class ElementLineage(pydantic.BaseModel):
     """Full lineage of a code element across Odoo versions."""
 
-    start: ElementRef = Field(description="Starting element.")
-    target_version: str = Field(description="Target Odoo version.")
-    steps: list[ElementLineageStep] = Field(
+    start: ElementRef = pydantic.Field(description="Starting element.")
+    target_version: str = pydantic.Field(description="Target Odoo version.")
+    steps: list[ElementLineageStep] = pydantic.Field(
         description=(
             "Existing elements ordered by version. Version jumps indicate "
             "missing versions/scans or unresolved transitions."
@@ -153,7 +107,7 @@ class ElementLineageOutput(ElementLineage):
 class ElementLineageInput(ElementInput):
     """Inputs of the `code_get_element_lineage` tool."""
 
-    to_version: str | None = Field(
+    to_version: str | None = pydantic.Field(
         default=None,
         description=(
             "Target Odoo version. Defaults to the latest Odoo version known to the MCA."
@@ -161,15 +115,15 @@ class ElementLineageInput(ElementInput):
     )
 
 
-class ElementLineageBatchInput(BaseModel):
+class ElementLineageBatchInput(pydantic.BaseModel):
     """Inputs of the `code_get_elements_lineage` tool."""
 
-    elements: list[ElementInput] = Field(
+    elements: list[ElementInput] = pydantic.Field(
         min_length=1,
         max_length=100,
         description="Elements to trace (between 1 and 100).",
     )
-    to_version: str | None = Field(
+    to_version: str | None = pydantic.Field(
         default=None,
         description=(
             "Target Odoo version for all elements. Defaults to the latest "
@@ -178,26 +132,28 @@ class ElementLineageBatchInput(BaseModel):
     )
 
 
-class ElementLineageBatchResult(BaseModel):
+class ElementLineageBatchResult(pydantic.BaseModel):
     """One element result in a batch lineage call."""
 
-    element: ElementInput = Field(description="Element requested by the caller.")
-    lineage: ElementLineage | None = Field(
+    element: ElementInput = pydantic.Field(
+        description="Element requested by the caller."
+    )
+    lineage: ElementLineage | None = pydantic.Field(
         default=None, description="Lineage, if the element was found."
     )
-    error: str | None = Field(
+    error: str | None = pydantic.Field(
         default=None, description="Error for this element, if any."
     )
 
 
-class ElementLineageBatchOutput(BaseModel):
+class ElementLineageBatchOutput(pydantic.BaseModel):
     """Output of the `code_get_elements_lineage` tool."""
 
     error: str | None = None
     results: list[ElementLineageBatchResult]
 
 
-class AbsentElementCounts(BaseModel):
+class AbsentElementCounts(pydantic.BaseModel):
     """Timeline counters of the absent elements."""
 
     uncovered: int = 0
@@ -209,38 +165,40 @@ class AbsentElementCounts(BaseModel):
 class AbsentElement(ElementRef):
     """Code element absent from the next Odoo version."""
 
-    org: NullableStr = Field(
+    org: NullableStr = pydantic.Field(
         default=None, description="Organization owning the repository."
     )
-    repository: NullableStr = Field(default=None, description="Repository name.")
-    timeline: TimelineRef | None = Field(
+    repository: NullableStr = pydantic.Field(
+        default=None, description="Repository name."
+    )
+    timeline: TimelineRef | None = pydantic.Field(
         default=None,
         description=(
             "Timeline covering the element, if any. No timeline means the "
             "element is uncovered and still needs analysis."
         ),
     )
-    data_type: Literal["data", "demo"] | None = Field(
+    data_type: Literal["data", "demo"] | None = pydantic.Field(
         default=None, description="'data' or 'demo' (for data elements)."
     )
-    noupdate: bool | None = Field(
+    noupdate: bool | None = pydantic.Field(
         default=None, description="Whether the data is in noupdate mode."
     )
-    is_override: bool | None = Field(
+    is_override: bool | None = pydantic.Field(
         default=None,
         description=(
             "Whether the data record overrides a record of another module "
             "(for data elements)."
         ),
     )
-    overridden_xml_id: NullableStr = Field(
+    overridden_xml_id: NullableStr = pydantic.Field(
         default=None,
         description=(
             "XML ID of the overridden record when 'is_override' is true "
             "(for data elements)."
         ),
     )
-    next_defined_in: list[str] = Field(
+    next_defined_in: list[str] = pydantic.Field(
         default_factory=list,
         description=(
             "Modules defining the same model in the next version, in the same "
@@ -249,64 +207,68 @@ class AbsentElement(ElementRef):
     )
 
 
-class AbsentElementsInput(BaseModel):
+class AbsentElementsInput(pydantic.BaseModel):
     """Inputs of the `code_list_absent_elements` tool."""
 
-    module: str = Field(description="Technical module name.")
-    version: str = Field(
+    module: str = pydantic.Field(description="Technical module name.")
+    version: str = pydantic.Field(
         description=(
             "Source Odoo version (the elements are checked against its next version)."
         )
     )
-    element_type: Literal["model", "field", "method", "data"] | None = Field(
+    element_type: Literal["model", "field", "method", "data"] | None = pydantic.Field(
         default=None, description="Filter by element type."
     )
-    model: str | None = Field(default=None, description="Filter by model name.")
-    data_type: Literal["data", "demo"] | None = Field(
+    model: str | None = pydantic.Field(
+        default=None, description="Filter by model name."
+    )
+    data_type: Literal["data", "demo"] | None = pydantic.Field(
         default=None,
         description=(
             "Filter data elements by type. Setting any data filter restricts "
             "the search to data elements."
         ),
     )
-    noupdate: bool | None = Field(
+    noupdate: bool | None = pydantic.Field(
         default=None, description="Filter data elements by noupdate mode."
     )
-    is_override: bool | None = Field(
+    is_override: bool | None = pydantic.Field(
         default=None,
         description="Filter data elements by whether they override another record.",
     )
-    timeline_state: Literal["none", "draft", "confirmed"] | None = Field(
+    timeline_state: Literal["none", "draft", "confirmed"] | None = pydantic.Field(
         default=None,
         description=(
             "Filter by timeline state: 'none' (no timeline), 'draft' or 'confirmed'."
         ),
     )
-    timeline_type: Literal["moved", "removed"] | None = Field(
+    timeline_type: Literal["moved", "removed"] | None = pydantic.Field(
         default=None, description="Filter by timeline type."
     )
-    repository: str | None = Field(
+    repository: str | None = pydantic.Field(
         default=None,
         description=(
             "Restrict to one repository ('name' or 'org/name'). "
             "Required when several repositories host the module."
         ),
     )
-    limit: int = Field(default=50, ge=1, description="Number of elements to return.")
-    offset: int = Field(
+    limit: int = pydantic.Field(
+        default=50, ge=1, description="Number of elements to return."
+    )
+    offset: int = pydantic.Field(
         default=0, ge=0, description="Index of the first element to return."
     )
 
 
-class AbsentElementsOutput(BaseModel):
+class AbsentElementsOutput(pydantic.BaseModel):
     """Output of the `code_list_absent_elements` tool."""
 
     error: str | None = None
     total: int
-    next_version: NullableStr = Field(
-        default=None, description="Odoo version the elements are absent from."
+    next_version: str = pydantic.Field(
+        description="Odoo version the elements are absent from."
     )
-    counts: AbsentElementCounts = Field(
+    counts: AbsentElementCounts = pydantic.Field(
         description=(
             "Timeline counters over the elements matching every filter except "
             "the timeline filters, before pagination."
@@ -321,49 +283,6 @@ class OdooModuleBranch(models.Model):
     # ------------------------------------------------------------------
     # Shared glue for the MCP tools
     # ------------------------------------------------------------------
-
-    def _mcp_get_element(
-        self,
-        element_type,
-        version,
-        module,
-        model=None,
-        name=None,
-        repository=None,
-    ):
-        """Return the single code element matching the inputs."""
-        domain = []
-        if module:
-            domain.append(("module_name", "=", module))
-        if version:
-            domain.append(("odoo_version_id", "=", self._mcp_get_branch(version).id))
-        if repository:
-            domain.append(
-                ("repository_id", "=", self._mcp_get_repository(repository).id)
-            )
-        if model:
-            domain.append(("odoo_model_name", "=", model))
-        if element_type == "model":
-            domain.append(("odoo_model_name", "=", name))
-        elif element_type == "data":
-            domain.extend(["|", ("full_xml_id", "=", name), ("xml_id", "=", name)])
-        else:
-            domain.append(("name", "=", name))
-        elements = self.env[ELEMENT_MODELS[element_type]].search(domain)
-        if not elements:
-            context = f" (model '{model}')" if model else ""
-            raise ValueError(
-                f"No {element_type} '{name}' found for module '{module}' "
-                f"on Odoo version '{version}'{context}."
-            )
-        if len(elements) > 1:
-            repositories = ", ".join(elements.mapped("repository_id.display_name"))
-            raise ValueError(
-                f"The {element_type} '{name}' is defined in several repositories "
-                f"for module '{module}' on Odoo version '{version}': "
-                f"{repositories}. Please specify the 'repository' input."
-            )
-        return elements
 
     # ------------------------------------------------------------------
     # MCP tools

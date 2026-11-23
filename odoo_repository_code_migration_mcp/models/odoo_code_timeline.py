@@ -4,77 +4,92 @@
 
 from typing import Literal
 
-from pydantic import BaseModel, Field
+import pydantic
 
 from odoo import models
 
-from odoo.addons.odoo_repository_mcp.utils import (
-    NullableStr,
-    check_source_of_truth,
-    mcp_tool,
+from odoo.addons.odoo_repository_code_mcp.models.odoo_module_branch import (
+    ELEMENT_MODELS,
+    ElementInput,
+    ElementRef,
 )
-
-from .odoo_module_branch import ELEMENT_MODELS, ElementRef
+from odoo.addons.odoo_repository_mcp.utils import NullableStr, mcp_tool
+from odoo.addons.odoo_repository_migration_mcp.utils import (
+    TimelineCreateFields,
+    TimelineUpdateFields,
+    check_confirmed_timeline_update,
+    check_source_of_truth,
+)
 
 # ---------------------------------------------------------------------------
 # Pydantic models of the MCP tools
 # ---------------------------------------------------------------------------
 
 
-class Timeline(BaseModel):
+class Timeline(pydantic.BaseModel):
     """Code timeline (element move/replacement/removal)."""
 
     id: int
-    element_type: str = Field(description="'model', 'field', 'method' or 'data'.")
-    module: str = Field(description="Technical module name.")
-    version: str = Field(description="Odoo version of the source element.")
-    model: NullableStr = Field(
+    element_type: Literal["model", "field", "method", "data"] = pydantic.Field(
+        description="'model', 'field', 'method' or 'data'."
+    )
+    module: str = pydantic.Field(description="Technical module name.")
+    version: str = pydantic.Field(description="Odoo version of the source element.")
+    model: NullableStr = pydantic.Field(
         default=None,
         description="Model the element belongs to (None for model elements).",
     )
-    name: str = Field(description="Element name (the full XML ID for data elements).")
-    timeline_type: str = Field(
+    name: str = pydantic.Field(
+        description="Element name (the full XML ID for data elements)."
+    )
+    timeline_type: Literal["moved", "removed"] = pydantic.Field(
         description="'moved' (renamed or replaced) or 'removed'."
     )
-    state: str = Field(description="Review state: 'draft' or 'confirmed'.")
-    next: ElementRef | None = Field(
+    state: Literal["draft", "confirmed"] = pydantic.Field(
+        description="Review state: 'draft' or 'confirmed'."
+    )
+    next: ElementRef | None = pydantic.Field(
         default=None, description="Target element of a move/replacement, if any."
     )
-    starting_version: NullableStr = Field(
+    starting_version: NullableStr = pydantic.Field(
         default=None, description="Odoo version the timeline starts from."
     )
-    note: NullableStr = Field(
+    note: NullableStr = pydantic.Field(
         default=None,
         description="HTML note explaining the move/replacement/removal.",
     )
 
 
-class TimelineListInput(BaseModel):
+class TimelineListInput(pydantic.BaseModel):
     """Inputs of the `code_list_timelines` tool."""
 
-    module: str | None = Field(default=None, description="Technical module name.")
-    version: str | None = Field(
+    module: str | None = pydantic.Field(
+        default=None, description="Technical module name."
+    )
+    version: str | None = pydantic.Field(
         default=None, description="Filter by the source element Odoo version."
     )
-    element_type: Literal["model", "field", "method", "data"] | None = Field(
+    element_type: Literal["model", "field", "method", "data"] | None = pydantic.Field(
         default=None, description="Filter by element type."
     )
-    state: Literal["draft", "confirmed"] | None = Field(
+    state: Literal["draft", "confirmed"] | None = pydantic.Field(
         default=None, description="Filter by review state."
     )
-    timeline_type: Literal["moved", "removed"] | None = Field(
+    timeline_type: Literal["moved", "removed"] | None = pydantic.Field(
         default=None, description="Filter by timeline type."
     )
-    repository: str | None = Field(
+    repository: str | None = pydantic.Field(
         default=None, description="Filter by repository ('name' or 'org/name')."
     )
-    limit: int = Field(default=50, ge=1, description="Number of timelines to return.")
-    offset: int = Field(
+    limit: int = pydantic.Field(
+        default=50, ge=1, description="Number of timelines to return."
+    )
+    offset: int = pydantic.Field(
         default=0, ge=0, description="Index of the first timeline to return."
     )
 
 
-class TimelineListOutput(BaseModel):
+class TimelineListOutput(pydantic.BaseModel):
     """Output of the `code_list_timelines` tool."""
 
     error: str | None = None
@@ -82,33 +97,14 @@ class TimelineListOutput(BaseModel):
     timelines: list[Timeline]
 
 
-class TimelineCreateInput(BaseModel):
+class TimelineCreateInput(ElementInput, TimelineCreateFields):
     """Inputs of the `code_create_timeline` tool."""
 
-    element_type: Literal["model", "field", "method", "data"] = Field(
-        description="Type of the element."
-    )
-    version: str = Field(
-        description="Odoo version of the source element (e.g. '17.0')."
-    )
-    module: str = Field(description="Technical module name.")
-    model: str | None = Field(
-        default=None,
-        description=(
-            "Model name the element belongs to (required for fields and methods)."
-        ),
-    )
-    name: str = Field(
-        description=(
-            "Element name (the external ID for data elements, local or fully "
-            "qualified)."
-        )
-    )
-    timeline_type: Literal["moved", "removed"] | None = Field(
+    timeline_type: Literal["moved", "removed"] | None = pydantic.Field(
         default=None,
         description="'moved' (default, renamed or replaced) or 'removed'.",
     )
-    next_name: str | None = Field(
+    next_name: str | None = pydantic.Field(
         default=None,
         description=(
             "Name of the element in the next Odoo version (required for a "
@@ -119,7 +115,7 @@ class TimelineCreateInput(BaseModel):
             "source name/XML ID is then reused."
         ),
     )
-    next_module: str | None = Field(
+    next_module: str | None = pydantic.Field(
         default=None,
         description=(
             "Technical name of the module hosting the target element when "
@@ -127,7 +123,7 @@ class TimelineCreateInput(BaseModel):
             "following the module renames/replacements)."
         ),
     )
-    next_model: str | None = Field(
+    next_model: str | None = pydantic.Field(
         default=None,
         description=(
             "Technical name of the model hosting the target element when a "
@@ -136,80 +132,25 @@ class TimelineCreateInput(BaseModel):
             "methods."
         ),
     )
-    note: str | None = Field(
-        default=None,
-        description=(
-            "HTML note. Start the visible text with '[HIGHLY-CONFIDENT]' "
-            "or '[LESS-CONFIDENT]', explain the change, then end with a "
-            "bulleted Source section: "
-            "'<br/>Source:<br/>- <a href=\"URL\">URL</a>' for each link. "
-            "Put the full URL as link text, commit first; do not use "
-            "Markdown."
-        ),
-        examples=[
-            (
-                "<p>[HIGHLY-CONFIDENT] Renamed.<br/>Source:"
-                '<br/>- <a href="https://github.com/odoo/odoo/commit/abc123">'
-                "https://github.com/odoo/odoo/commit/abc123</a>"
-                '<br/>- <a href="https://github.com/OCA/OpenUpgrade">'
-                "https://github.com/OCA/OpenUpgrade</a></p>"
-            )
-        ],
-    )
-    confirm: bool = Field(
-        default=False,
-        description=(
-            "Create the timeline as confirmed instead of draft. Only for "
-            "high-confidence proposals: a confirmed timeline immediately "
-            "impacts the migration analysis, and a source of truth URL is "
-            "required in 'note'."
-        ),
-    )
-    repository: str | None = Field(
-        default=None,
-        description=(
-            "Restrict to one repository ('name' or 'org/name'). "
-            "Required when several repositories host the module."
-        ),
-    )
 
 
-class TimelineOutput(BaseModel):
+class TimelineOutput(pydantic.BaseModel):
     """Output of the timeline write tools."""
 
     error: str | None = None
     timeline: Timeline
 
 
-class TimelineUpdateInput(BaseModel):
+class TimelineUpdateInput(ElementInput, TimelineUpdateFields):
     """Inputs of the `code_update_timeline` tool."""
 
-    element_type: Literal["model", "field", "method", "data"] = Field(
-        description="Type of the element."
-    )
-    version: str = Field(
-        description="Odoo version of the source element (e.g. '17.0')."
-    )
-    module: str = Field(description="Technical module name.")
-    model: str | None = Field(
-        default=None,
-        description=(
-            "Model name the element belongs to (required for fields and methods)."
-        ),
-    )
-    name: str = Field(
-        description=(
-            "Element name (the external ID for data elements, local or fully "
-            "qualified)."
-        )
-    )
-    timeline_type: Literal["moved", "removed"] | None = Field(
+    timeline_type: Literal["moved", "removed"] | None = pydantic.Field(
         default=None,
         description=(
             "New type of the timeline: 'moved' (renamed or replaced) or 'removed'."
         ),
     )
-    next_name: str | None = Field(
+    next_name: str | None = pydantic.Field(
         default=None,
         description=(
             "New name of the element in the next Odoo version. For data "
@@ -219,7 +160,7 @@ class TimelineUpdateInput(BaseModel):
             "target name is then reused."
         ),
     )
-    next_module: str | None = Field(
+    next_module: str | None = pydantic.Field(
         default=None,
         description=(
             "Technical name of the module hosting the target element when "
@@ -227,7 +168,7 @@ class TimelineUpdateInput(BaseModel):
             "if any, else the source module)."
         ),
     )
-    next_model: str | None = Field(
+    next_model: str | None = pydantic.Field(
         default=None,
         description=(
             "Technical name of the model hosting the target element when a "
@@ -236,77 +177,13 @@ class TimelineUpdateInput(BaseModel):
             "and methods."
         ),
     )
-    note: str | None = Field(
-        default=None,
-        description=(
-            "HTML note. Start the visible text with '[HIGHLY-CONFIDENT]' "
-            "or '[LESS-CONFIDENT]', explain the change, then end with a "
-            "bulleted Source section: "
-            "'<br/>Source:<br/>- <a href=\"URL\">URL</a>' for each link. "
-            "Put the full URL as link text, commit first; do not use "
-            "Markdown. On a confirmed timeline, only the note can be "
-            "updated."
-        ),
-        examples=[
-            (
-                "<p>[HIGHLY-CONFIDENT] Renamed.<br/>Source:"
-                '<br/>- <a href="https://github.com/odoo/odoo/commit/abc123">'
-                "https://github.com/odoo/odoo/commit/abc123</a>"
-                '<br/>- <a href="https://github.com/OCA/OpenUpgrade">'
-                "https://github.com/OCA/OpenUpgrade</a></p>"
-            )
-        ],
-    )
-    confirm: bool = Field(
-        default=False,
-        description=(
-            "Confirm the timeline instead of keeping it as a draft. Only "
-            "for high-confidence proposals: a confirmed timeline "
-            "immediately impacts the migration analysis, and a source of "
-            "truth URL is required in 'note'."
-        ),
-    )
-    repository: str | None = Field(
-        default=None,
-        description=(
-            "Restrict to one repository ('name' or 'org/name'). "
-            "Required when several repositories host the module."
-        ),
-    )
 
 
-class TimelineDeleteInput(BaseModel):
+class TimelineDeleteInput(ElementInput):
     """Inputs of the `code_delete_timeline` tool."""
 
-    element_type: Literal["model", "field", "method", "data"] = Field(
-        description="Type of the element."
-    )
-    version: str = Field(
-        description="Odoo version of the source element (e.g. '17.0')."
-    )
-    module: str = Field(description="Technical module name.")
-    model: str | None = Field(
-        default=None,
-        description=(
-            "Model name the element belongs to (required for fields and methods)."
-        ),
-    )
-    name: str = Field(
-        description=(
-            "Element name (the external ID for data elements, local or fully "
-            "qualified)."
-        )
-    )
-    repository: str | None = Field(
-        default=None,
-        description=(
-            "Restrict to one repository ('name' or 'org/name'). "
-            "Required when several repositories host the module."
-        ),
-    )
 
-
-class TimelineDeletedOutput(BaseModel):
+class TimelineDeletedOutput(pydantic.BaseModel):
     """Output of the `code_delete_timeline` tool."""
 
     error: str | None = None
@@ -837,24 +714,11 @@ class OdooCodeTimeline(models.Model):
         self, timeline, timeline_type, next_name, next_module, next_model, note, confirm
     ):
         """Annotate a confirmed timeline (note only)."""
-        if confirm:
-            raise ValueError(
-                "The timeline is already confirmed: 'confirm' is not expected."
-            )
-        if any(
-            value is not None
-            for value in (timeline_type, next_name, next_module, next_model)
-        ):
-            raise ValueError(
-                "The timeline is confirmed: only its note can be updated "
-                "(semantic fields are managed by humans in the UI)."
-            )
-        if note is None:
-            raise ValueError(
-                "The timeline is confirmed: provide 'note' to annotate it; "
-                "semantic fields cannot be updated."
-            )
-        check_source_of_truth(note)
+        check_confirmed_timeline_update(
+            confirm,
+            (timeline_type, next_name, next_module, next_model),
+            note,
+        )
         timeline.write({"note": note})
         return {"timeline": timeline._mcp_to_dict()}
 
