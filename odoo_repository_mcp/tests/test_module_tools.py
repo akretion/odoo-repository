@@ -54,6 +54,8 @@ class TestModuleTools(McpCommon):
         self.assertEqual(module["repository"], "test-repo")
         self.assertEqual(module["title"], "Module B")
         self.assertFalse(module["removed"])
+        self.assertEqual(module["global_dependency_level"], 2)
+        self.assertEqual(module["non_std_dependency_level"], 2)
 
     def test_module_search__unknown_filters(self):
         for kwargs in (
@@ -108,8 +110,12 @@ class TestModuleTools(McpCommon):
         )
         self.assertIsNone(result["error"])
         self.assertEqual(len(result["modules"]), 2)
-        repositories = {module["repository"]["name"] for module in result["modules"]}
-        self.assertEqual(repositories, {"test-repo", "project-repo"})
+        modules = {module["repository"]["name"]: module for module in result["modules"]}
+        self.assertEqual(set(modules), {"test-repo", "project-repo"})
+        self.assertEqual(modules["test-repo"]["global_dependency_level"], 3)
+        self.assertEqual(modules["test-repo"]["non_std_dependency_level"], 3)
+        self.assertEqual(modules["project-repo"]["global_dependency_level"], 1)
+        self.assertEqual(modules["project-repo"]["non_std_dependency_level"], 1)
 
     def test_module_get_details__values(self):
         result = self.env["odoo.module.branch"]._ai_module_get_details(
@@ -125,6 +131,8 @@ class TestModuleTools(McpCommon):
         self.assertEqual(module["authors"], ["Test Author"])
         self.assertEqual(module["license"], "Test License")
         self.assertEqual(len(module["versions"]), 2)
+        self.assertEqual(module["global_dependency_level"], 3)
+        self.assertEqual(module["non_std_dependency_level"], 3)
         self.assertIn("test_module_a", module["url"])
 
     def test_module_get_details__not_found(self):
@@ -151,7 +159,10 @@ class TestModuleTools(McpCommon):
         )
         self.assertIsNone(result["error"])
         self.assertEqual(result["total"], 1)
-        self.assertEqual(result["dependencies"][0]["module"], "test_module_b")
+        dependency = result["dependencies"][0]
+        self.assertEqual(dependency["module"], "test_module_b")
+        self.assertEqual(dependency["global_dependency_level"], 2)
+        self.assertEqual(dependency["non_std_dependency_level"], 2)
 
     def test_module_get_dependencies__recursive(self):
         result = self.env["odoo.module.branch"]._ai_module_get_dependencies(
@@ -162,8 +173,11 @@ class TestModuleTools(McpCommon):
         )
         self.assertIsNone(result["error"])
         self.assertEqual(result["total"], 3)
-        modules = {dep["module"] for dep in result["dependencies"]}
-        self.assertEqual(modules, {"test_module_b", "test_module_c"})
+        dependencies = {dep["module"]: dep for dep in result["dependencies"]}
+        self.assertEqual(set(dependencies), {"test_module_b", "test_module_c"})
+        for module, level in (("test_module_b", 2), ("test_module_c", 1)):
+            self.assertEqual(dependencies[module]["global_dependency_level"], level)
+            self.assertEqual(dependencies[module]["non_std_dependency_level"], level)
 
     def test_module_get_dependencies__reverse(self):
         model = self.env["odoo.module.branch"]

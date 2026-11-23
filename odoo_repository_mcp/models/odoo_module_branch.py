@@ -48,6 +48,15 @@ class ModuleSummary(BaseModel):
     is_community: bool = Field(
         description="Whether the module is a community contribution."
     )
+    global_dependency_level: int = Field(
+        description="Dependency level including all standard Odoo modules."
+    )
+    non_std_dependency_level: int = Field(
+        description=(
+            "Dependency level excluding standard Odoo modules "
+            "(0 for standard Odoo modules)."
+        )
+    )
 
 
 class ModuleSearchInput(BaseModel):
@@ -116,6 +125,15 @@ class ModuleDetails(BaseModel):
     authors: list[str] = []
     maintainers: list[str] = []
     depends: list[str] = []
+    global_dependency_level: int = Field(
+        description="Dependency level including all standard Odoo modules."
+    )
+    non_std_dependency_level: int = Field(
+        description=(
+            "Dependency level excluding standard Odoo modules "
+            "(0 for standard Odoo modules)."
+        )
+    )
     category: NullableStr = None
     license: NullableStr = None
     version: NullableStr = None
@@ -169,6 +187,15 @@ class DependencySummary(BaseModel):
     org: NullableStr = None
     repository: NullableStr = None
     title: NullableStr = None
+    global_dependency_level: int = Field(
+        description="Dependency level including all standard Odoo modules."
+    )
+    non_std_dependency_level: int = Field(
+        description=(
+            "Dependency level excluding standard Odoo modules "
+            "(0 for standard Odoo modules)."
+        )
+    )
 
 
 class ModuleDependenciesInput(BaseModel):
@@ -334,6 +361,8 @@ class OdooModuleBranch(models.Model):
             "is_standard": self.is_standard,
             "is_enterprise": self.is_enterprise,
             "is_community": self.is_community,
+            "global_dependency_level": self.global_dependency_level,
+            "non_std_dependency_level": self.non_std_dependency_level,
         }
 
     def _mcp_to_dict_short(self):
@@ -345,6 +374,8 @@ class OdooModuleBranch(models.Model):
             "org": self.org_id.name,
             "repository": self.repository_id.name,
             "title": self.title,
+            "global_dependency_level": self.global_dependency_level,
+            "non_std_dependency_level": self.non_std_dependency_level,
         }
 
     def _mcp_get_recursive_reverse_dependencies(self, domain=None, _visited=None):
@@ -443,6 +474,8 @@ class OdooModuleBranch(models.Model):
         for module_branch in module_branches:
             data = module_branch._to_dict()
             data["url"] = module_branch.url
+            data["global_dependency_level"] = module_branch.global_dependency_level
+            data["non_std_dependency_level"] = module_branch.non_std_dependency_level
             modules.append(data)
         return {"modules": modules}
 
