@@ -68,7 +68,9 @@ class TestCodeTimelineWriteTools(McpCodeMigrationCommon):
             schema = getattr(model, method_name)._ai_tool["input_schema"]
             note_schema = schema["properties"]["note"]
             self.assertIn("examples", note_schema)
+            self.assertIn("<code>", note_schema["description"])
             example = note_schema["examples"][0]
+            self.assertIn("<code>", example)
             self.assertIn("<p>Source:</p>", example)
             self.assertIn("<ul>", example)
             self.assertIn("<li>", example)

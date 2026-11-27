@@ -56,7 +56,10 @@ class Timeline(pydantic.BaseModel):
     )
     note: NullableStr = pydantic.Field(
         default=None,
-        description="HTML note explaining the move/replacement/removal.",
+        description=(
+            "HTML note explaining the move/replacement/removal; technical "
+            "terms are wrapped in '<code>'."
+        ),
     )
 
 
