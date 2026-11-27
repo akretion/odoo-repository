@@ -30,10 +30,17 @@ NOTE_DESCRIPTION = (
     "bulleted Source section: "
     "'<p>Source:</p><ul><li><a href=\"URL\">URL</a></li></ul>' "
     "(one '<li>' per link). Put the full URL as link text, commit "
-    "first; do not use Markdown."
+    "first. Wrap every technical term in '<code>...</code>': module, "
+    "model, field, method and XML ID names, file paths, apriori.py "
+    "and upgrade_analysis.txt entries. Keep version numbers, dates "
+    "and prose plain: '<code>' is the only highlighting the "
+    "sanitizer keeps ('<span>', 'class' and 'style' are dropped). "
+    "Do not use Markdown."
 )
 NOTE_EXAMPLE = (
-    "<p>[HIGHLY-CONFIDENT] Renamed.</p><p>Source:</p>"
+    "<p>[HIGHLY-CONFIDENT] <code>mail_preview_base</code> was merged "
+    "into <code>mail</code> in 16.0; <code>mail.preview.mixin</code> "
+    "became <code>mail.composer.mixin</code>.</p><p>Source:</p>"
     "<ul>"
     '<li><a href="https://github.com/odoo/odoo/commit/abc123">'
     "https://github.com/odoo/odoo/commit/abc123</a></li>"

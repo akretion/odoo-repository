@@ -40,7 +40,7 @@
         <field name="name">migration_create_timeline</field>
         <field
             name="description"
-        >Declare that a module has been renamed or replaced by another one, starting from the next Odoo version. The 'note' is HTML: start with the confidence tag, then end with a bulleted Source section, one full URL per link (commit first); do not use Markdown. The proposal is created as a draft timeline by default; set 'confirm' to true to create it directly as confirmed (high-confidence proposals only: it immediately impacts the migration analysis). The 'note' should document the sources of truth justifying it (e.g. the GitHub commit URL, the OpenUpgrade migration script URL): a source of truth URL is mandatory to confirm.</field>
+        >Declare that a module has been renamed or replaced by another one, starting from the next Odoo version. The 'note' is HTML: start with the confidence tag, then end with a bulleted Source section, one full URL per link (commit first). Wrap every technical term (module, model, field, method, XML ID, file path, apriori.py or upgrade_analysis.txt entry) in &lt;code&gt;...&lt;/code&gt;: it is the only highlighting kept, so keep version numbers, dates and prose plain. Do not use Markdown. The proposal is created as a draft timeline by default; set 'confirm' to true to create it directly as confirmed (high-confidence proposals only: it immediately impacts the migration analysis). The 'note' should document the sources of truth justifying it (e.g. the GitHub commit URL, the OpenUpgrade migration script URL): a source of truth URL is mandatory to confirm.</field>
         <field
             name="model_id"
             ref="odoo_repository_migration.model_odoo_module_branch_timeline"
@@ -53,7 +53,7 @@
         <field name="name">migration_update_timeline</field>
         <field
             name="description"
-        >Update a draft timeline proposal (new module, type or note). The 'note' is HTML: start with the confidence tag, then end with a bulleted Source section, one full URL per link (commit first); do not use Markdown. Set 'confirm' to true to confirm it once the proposal reaches high confidence (a confirmed timeline immediately impacts the migration analysis, and a source of truth URL is required in 'note'). A confirmed timeline can only have its note updated, and the new note must carry a source URL; semantic fields cannot be modified.</field>
+        >Update a draft timeline proposal (new module, type or note). The 'note' is HTML: start with the confidence tag, then end with a bulleted Source section, one full URL per link (commit first). Wrap every technical term (module, model, field, method, XML ID, file path, apriori.py or upgrade_analysis.txt entry) in &lt;code&gt;...&lt;/code&gt;: it is the only highlighting kept, so keep version numbers, dates and prose plain. Do not use Markdown. Set 'confirm' to true to confirm it once the proposal reaches high confidence (a confirmed timeline immediately impacts the migration analysis, and a source of truth URL is required in 'note'). A confirmed timeline can only have its note updated, and the new note must carry a source URL; semantic fields cannot be modified.</field>
         <field
             name="model_id"
             ref="odoo_repository_migration.model_odoo_module_branch_timeline"

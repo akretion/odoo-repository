@@ -40,7 +40,10 @@ class Timeline(pydantic.BaseModel):
     starting_version: NullableStr = None
     note: NullableStr = pydantic.Field(
         default=None,
-        description="HTML note explaining the module move/replacement.",
+        description=(
+            "HTML note explaining the module move/replacement; technical "
+            "terms are wrapped in '<code>'."
+        ),
     )
 
 
